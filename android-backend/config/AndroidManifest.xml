@@ -1,0 +1,50 @@
+<!-- AndroidManifest.xml 需要添加的权限和配置 -->
+<!-- 将以下内容合并到你的 AndroidManifest.xml 中 -->
+
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <!-- ============ 权限声明 ============ -->
+
+    <!-- 网络权限 (Firebase 需要) -->
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+
+    <!-- 位置权限 (Google Maps 需要) -->
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+
+    <!-- 前台服务权限 (后台定位，可选) -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_LOCATION" />
+
+    <application
+        android:name=".LifeSignalApp"
+        android:allowBackup="true"
+        android:label="LifeSignal"
+        android:theme="@style/Theme.LifeSignal">
+
+        <!-- ============ Google Maps API Key ============ -->
+        <!--
+            步骤:
+            1. 前往 https://console.cloud.google.com/
+            2. 启用 "Maps SDK for Android" API
+            3. 创建 API Key 并限制为 Android 应用
+            4. 将下面的 YOUR_GOOGLE_MAPS_API_KEY 替换为你的真实 Key
+        -->
+        <meta-data
+            android:name="com.google.android.geo.API_KEY"
+            android:value="YOUR_GOOGLE_MAPS_API_KEY" />
+
+        <!-- 主 Activity -->
+        <activity
+            android:name=".MainActivity"
+            android:exported="true"
+            android:theme="@style/Theme.LifeSignal">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+    </application>
+
+</manifest>

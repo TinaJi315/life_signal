@@ -1,0 +1,25 @@
+# Android
+.gradle/
+local.properties
+/build
+Captures/
+.externalNativeBuild
+.cxx
+local.properties
+*.jks
+*.keystore
+*.apk
+*.ap_
+
+# Node/TypeScript
+node_modules/
+dist/
+coverage/
+.env*
+!.env.example
+
+# IDEs
+.idea/
+*.iml
+.DS_Store
+*.log

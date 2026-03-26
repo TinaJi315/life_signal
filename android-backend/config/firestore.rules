@@ -1,0 +1,60 @@
+// Firestore 安全规则
+// 将此文件内容粘贴到 Firebase Console -> Firestore -> Rules
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ---- 用户文档 ----
+    match /users/{userId} {
+      // 任何已登录用户可以读取其他用户的基本信息（用于搜索好友）
+      allow read: if request.auth != null;
+      // 只有用户本人可以写入自己的文档
+      allow write: if request.auth != null && request.auth.uid == userId;
+
+      // ---- 紧急联系人（子集合） ----
+      match /contacts/{contactId} {
+        allow read, write: if request.auth != null && request.auth.uid == userId;
+      }
+
+      // ---- 好友列表（子集合） ----
+      match /friends/{friendId} {
+        allow read: if request.auth != null;
+        allow write: if request.auth != null && request.auth.uid == userId;
+      }
+
+      // ---- 签到记录（子集合） ----
+      match /checkins/{checkinId} {
+        allow read: if request.auth != null;
+        allow create: if request.auth != null && request.auth.uid == userId;
+      }
+
+      // ---- 通知设置（子集合） ----
+      match /settings/{settingId} {
+        allow read, write: if request.auth != null && request.auth.uid == userId;
+      }
+    }
+
+    // ---- 群组 ----
+    match /groups/{groupId} {
+      // 群组成员可以读取
+      allow read: if request.auth != null && request.auth.uid in resource.data.memberIds;
+      // 群主可以写入
+      allow create: if request.auth != null;
+      allow update, delete: if request.auth != null && request.auth.uid == resource.data.ownerUid;
+    }
+
+    // ---- 好友请求 ----
+    match /friend_requests/{requestId} {
+      allow create: if request.auth != null;
+      allow read: if request.auth != null &&
+        (request.auth.uid == resource.data.fromUid || request.auth.uid == resource.data.toUid);
+      allow update: if request.auth != null && request.auth.uid == resource.data.toUid;
+    }
+
+    // ---- 提醒 ----
+    match /reminders/{reminderId} {
+      allow create: if request.auth != null;
+      allow read: if request.auth != null && request.auth.uid in resource.data.memberIds;
+    }
+  }
+}

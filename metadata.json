@@ -1,0 +1,5 @@
+{
+  "name": "LifeSignal",
+  "description": "A personal safety and health monitoring app designed for seniors, featuring easy check-ins and emergency contact management.",
+  "requestFramePermissions": ["geolocation"]
+}

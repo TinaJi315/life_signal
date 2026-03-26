@@ -1,0 +1,26 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+
+    <!-- Solid White Shield (Symbolizing Safety) -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M54,24 L30,34 L30,56 C30,73.3 40.3,89.3 54,96 C67.7,89.3 78,73.3 78,56 L78,34 Z" />
+
+    <!-- Green Heartbeat/Pulse inside shield (Symbolizing Life & Check-in) -->
+    <path
+        android:fillColor="#00000000"
+        android:strokeColor="#1B6D24"
+        android:strokeWidth="6"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"
+        android:pathData="M38,60 L46,60 L49.5,45 L58.5,75 L62,60 L70,60" />
+
+    <!-- Green Signal Dot above pulse (Symbolizing Network/Radar) -->
+    <path
+        android:fillColor="#1B6D24"
+        android:pathData="M54,32 A4,4 0,1,1 54,40 A4,4 0,1,1 54,32" />
+
+</vector>

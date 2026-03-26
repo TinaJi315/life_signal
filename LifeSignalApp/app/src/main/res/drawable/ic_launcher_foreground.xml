@@ -1,0 +1,37 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+
+    <!-- Blue Crescent Arc (Left wrapping shape) -->
+    <path
+        android:strokeColor="#1F2A58"
+        android:strokeWidth="10"
+        android:fillColor="#00000000"
+        android:pathData="M 70,22 A 36,36 0 0,0 50,90" />
+
+    <!-- Green Shield (With concave left edge to hug the crescent) -->
+    <path
+        android:fillColor="#70B943"
+        android:pathData="M36,36 Q58,30 80,34 L80,56 C80,76 66,86 54,90 C42,86 36,74 36,58 A 30,30 0 0,0 36,36 Z" />
+
+    <!-- Pulse Line White Outline (To create the cutout intersection effect) -->
+    <path
+        android:strokeColor="#FFFFFF"
+        android:strokeWidth="12"
+        android:strokeLineJoin="round"
+        android:strokeLineCap="round"
+        android:fillColor="#00000000"
+        android:pathData="M16,56 L38,56 L44,68 L52,34 L58,72 L64,56 L92,56" />
+
+    <!-- Pulse Line Dark Blue (The actual sharp heartbeat line) -->
+    <path
+        android:strokeColor="#1F2A58"
+        android:strokeWidth="6"
+        android:strokeLineJoin="round"
+        android:strokeLineCap="round"
+        android:fillColor="#00000000"
+        android:pathData="M16,56 L38,56 L44,68 L52,34 L58,72 L64,56 L92,56" />
+
+</vector>
