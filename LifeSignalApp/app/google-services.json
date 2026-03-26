@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "261272909760",
+    "project_id": "lifesignalapp-b7d80",
+    "storage_bucket": "lifesignalapp-b7d80.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:261272909760:android:b7de43aaf0aae214237a25",
+        "android_client_info": {
+          "package_name": "com.lifesignal"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCQ53bOww_McI0D8B0ccekAPDfpbpQoJPg"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
