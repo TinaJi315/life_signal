@@ -43,8 +43,23 @@ class NetworkRepository {
     }
 
     /**
+     * 根据 UID 获取完整用户信息
+     * 用于通过二维码扫出的 UID 添加好友
+     */
+    suspend fun getUserById(uid: String): User? {
+        return try {
+            firestore.collection(User.COLLECTION)
+                .document(uid)
+                .get()
+                .await()
+                .toObject(User::class.java)
+        } catch (e: Exception) {
+            null
+        }
+    }
+
+    /**
      * 实时监听好友列表变化
-     * 对应前端 NetworkPage 中好友状态的实时更新（safe/overdue 指示器）
      */
     fun observeFriends(uid: String): Flow<List<Friend>> = callbackFlow {
         val listener: ListenerRegistration = firestore.collection(User.COLLECTION)
@@ -57,6 +72,25 @@ class NetworkRepository {
                 }
                 val friends = snapshot?.toObjects(Friend::class.java) ?: emptyList()
                 trySend(friends)
+            }
+        awaitClose { listener.remove() }
+    }
+
+    /**
+     * 实时监听单个好友文档
+     * 用于 FriendDetailScreen 和 FriendProfileScreen 展示真实数据
+     */
+    fun observeFriendById(uid: String, friendId: String): Flow<Friend?> = callbackFlow {
+        val listener: ListenerRegistration = firestore.collection(User.COLLECTION)
+            .document(uid)
+            .collection(Friend.COLLECTION)
+            .document(friendId)
+            .addSnapshotListener { snapshot, error ->
+                if (error != null) {
+                    close(error)
+                    return@addSnapshotListener
+                }
+                trySend(snapshot?.toObject(Friend::class.java))
             }
         awaitClose { listener.remove() }
     }
@@ -179,8 +213,8 @@ class NetworkRepository {
      * 通过搜索查找用户
      * 对应前端 AddFriendPage 中的搜索栏
      */
-    suspend fun searchUsers(query: String): Result<List<User>> {
-        return try {
+    fun searchUsers(query: String): Flow<List<User>> = kotlinx.coroutines.flow.flow {
+        try {
             val snapshot = firestore.collection(User.COLLECTION)
                 .whereGreaterThanOrEqualTo("name", query)
                 .whereLessThanOrEqualTo("name", query + "\uf8ff")
@@ -188,9 +222,9 @@ class NetworkRepository {
                 .get()
                 .await()
             val users = snapshot.toObjects(User::class.java)
-            Result.success(users)
+            emit(users)
         } catch (e: Exception) {
-            Result.failure(e)
+            emit(emptyList())
         }
     }
 
@@ -361,5 +395,69 @@ class NetworkRepository {
         } catch (e: Exception) {
             Result.failure(e)
         }
+    }
+
+    /**
+     * 发送签到提醒
+     */
+    suspend fun sendReminder(fromUid: String, fromName: String, toUid: String) {
+        val reminder = hashMapOf(
+            "fromUid" to fromUid,
+            "fromName" to fromName,
+            "type" to "check_in_reminder",
+            "timestamp" to FieldValue.serverTimestamp(),
+            "status" to "unread"
+        )
+        firestore.collection(User.COLLECTION)
+            .document(toUid)
+            .collection("reminders")
+            .add(reminder)
+            .await()
+    }
+
+    /**
+     * 拉黑用户
+     */
+    suspend fun blockUser(uid: String, blockUid: String) {
+        removeFriend(uid, blockUid)
+        firestore.collection(User.COLLECTION)
+            .document(uid)
+            .collection("blocked_users")
+            .document(blockUid)
+            .set(mapOf("blockedAt" to FieldValue.serverTimestamp()))
+            .await()
+    }
+
+    /**
+     * 举报用户
+     */
+    suspend fun reportUser(uid: String, reportUid: String, reason: String) {
+        val report = hashMapOf(
+            "reporterUid" to uid,
+            "reportedUid" to reportUid,
+            "reason" to reason,
+            "timestamp" to FieldValue.serverTimestamp(),
+            "status" to "pending"
+        )
+        firestore.collection("reports")
+            .add(report)
+            .await()
+    }
+
+    /**
+     * 注入模拟用户数据
+     */
+    suspend fun seedMockUsers() {
+        val mockUsers = listOf(
+            User(uid = "user_mock_1", name = "Arthur Chen", email = "arthur.chen@example.com", phone = "+1 (555) 123-4567", shareUrl = "user_mock_1", status = "safe", location = "New York, USA"),
+            User(uid = "user_mock_2", name = "Sarah Miller", email = "sarah.m@lifesignal.io", phone = "+1 (555) 987-6543", shareUrl = "user_mock_2", status = "safe", location = "London, UK"),
+            User(uid = "user_mock_3", name = "James Wilson", email = "j.wilson@gmail.com", phone = "+1 (555) 444-5555", shareUrl = "user_mock_3", status = "overdue", location = "Toronto, CA"),
+            User(uid = "user_mock_4", name = "Emily Davis", email = "emily.davis@outlook.com", phone = "+1 (555) 222-3333", shareUrl = "user_mock_4", status = "safe", location = "Sydney, AU")
+        )
+        val batch = firestore.batch()
+        mockUsers.forEach { user ->
+            batch.set(firestore.collection(User.COLLECTION).document(user.uid), user)
+        }
+        batch.commit().await()
     }
 }

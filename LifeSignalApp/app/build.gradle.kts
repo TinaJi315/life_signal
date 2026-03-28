@@ -93,8 +93,9 @@ dependencies {
     // ---- 图片加载 ----
     implementation("io.coil-kt:coil-compose:2.7.0")
 
-    // ---- QR 码生成 ----
+    // ---- QR 码生成与扫描 ----
     implementation("com.google.zxing:core:3.5.3")
+    implementation("com.journeyapps:zxing-android-embedded:4.3.0")
 
     // ---- 测试 ----
     testImplementation("junit:junit:4.13.2")

@@ -1,6 +1,7 @@
 package com.lifesignal.ui.screens.network
 
 import android.app.Application
+import android.util.Log
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.lifesignal.data.model.Friend
@@ -10,10 +11,7 @@ import com.lifesignal.data.repository.AuthRepository
 import com.lifesignal.data.repository.NetworkRepository
 import com.lifesignal.data.repository.UserRepository
 import com.lifesignal.data.service.CheckInService
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 
 class NetworkViewModel(application: Application) : AndroidViewModel(application) {
@@ -34,58 +32,16 @@ class NetworkViewModel(application: Application) : AndroidViewModel(application)
     val isSearching: StateFlow<Boolean> = _isSearching.asStateFlow()
 
     init {
-        loadNetworkData()
+        observeData()
     }
 
-    fun loadNetworkData() {
+    private fun observeData() {
         val uid = authRepository.currentUid ?: return
         viewModelScope.launch {
-            launch {
-                networkRepository.observeFriends(uid).collectLatest { list ->
-                    _friends.value = list
-                }
-            }
-            launch {
-                networkRepository.observeGroups(uid).collectLatest { list ->
-                    _groups.value = list
-                }
-            }
-            
-            // 为了维持无缝的演示体验，如果发现通讯录为空，我们塞入之前的假名单作为真数据源
-            injectMockData(uid)
+            networkRepository.observeFriends(uid).collect { _friends.value = it }
         }
-    }
-
-    private fun injectMockData(uid: String) {
-        val db = com.google.firebase.firestore.FirebaseFirestore.getInstance()
-        val friendsRef = db.collection(User.COLLECTION).document(uid).collection(Friend.COLLECTION)
-        
-        friendsRef.limit(1).get().addOnSuccessListener { snap ->
-            if (snap.isEmpty) {
-                val batch = db.batch()
-                
-                // 还原当初的三名好友
-                val f1 = Friend(id = "mock_1", name = "Sarah Miller", status = "safe")
-                val f2 = Friend(id = "mock_2", name = "Arthur Chen", status = "overdue")
-                val f3 = Friend(id = "mock_3", name = "Elena Rodriguez", status = "safe")
-                
-                batch.set(friendsRef.document("mock_1"), f1)
-                batch.set(friendsRef.document("mock_2"), f2)
-                batch.set(friendsRef.document("mock_3"), f3)
-                
-                // 还原经典的 Family Circle 群组
-                val groupRef = db.collection(Group.COLLECTION).document("mock_group_$uid")
-                val group = Group(
-                    id = "mock_group_$uid", 
-                    name = "Family Circle", 
-                    ownerUid = uid, 
-                    memberIds = listOf(uid, "mock_1", "mock_2", "mock_3"), 
-                    memberCount = 4
-                )
-                batch.set(groupRef, group)
-                
-                batch.commit()
-            }
+        viewModelScope.launch {
+            networkRepository.observeGroups(uid).collect { _groups.value = it }
         }
     }
 
@@ -94,18 +50,15 @@ class NetworkViewModel(application: Application) : AndroidViewModel(application)
             _searchResults.value = emptyList()
             return
         }
-        _isSearching.value = true
-        // 为了支持边打字边搜（简单版本，未防抖）
         viewModelScope.launch {
-            val result = networkRepository.searchUsers(query)
-            // 过滤掉当前用户自己
-            val uid = authRepository.currentUid
-            _searchResults.value = result.getOrNull()?.filter { it.uid != uid } ?: emptyList()
-            _isSearching.value = false
+            _isSearching.value = true
+            networkRepository.searchUsers(query).collect { results ->
+                _searchResults.value = results
+                _isSearching.value = false
+            }
         }
     }
 
-    // 强写式好友添加（为了流畅测试体验跳过了发送请求然后等对方同意的繁琐逻辑）
     fun addFriendInstant(user: User, onComplete: () -> Unit = {}) {
         val uid = authRepository.currentUid ?: return
         viewModelScope.launch {
@@ -114,19 +67,79 @@ class NetworkViewModel(application: Application) : AndroidViewModel(application)
         }
     }
 
-    fun createGroup(name: String, selectedFriends: List<Friend>, onComplete: () -> Unit = {}) {
+    /** 通过扫码获得的 ID 直接添加好友 */
+    fun addFriendById(friendId: String, onComplete: (Boolean) -> Unit) {
         val uid = authRepository.currentUid ?: return
-        if (name.isBlank() || selectedFriends.isEmpty()) {
-            onComplete()
-            return
-        }
-        
         viewModelScope.launch {
-            val memberIds = selectedFriends.map { it.id }
-            // 取前三个好友的头像用于群组堆叠UI
-            val avatarUrls = selectedFriends.map { it.imageUrl }.take(3) 
-            networkRepository.createGroup(name, uid, memberIds, avatarUrls)
+            try {
+                val user = networkRepository.getUserById(friendId)
+                if (user != null) {
+                    networkRepository.instantAddFriend(uid, user)
+                    onComplete(true)
+                } else {
+                    onComplete(false)
+                }
+            } catch (e: Exception) {
+                onComplete(false)
+            }
+        }
+    }
+
+    /** 发送提醒 */
+    fun sendReminder(friendId: String, onComplete: () -> Unit = {}) {
+        val uid = authRepository.currentUid ?: return
+        viewModelScope.launch {
+            // 这里为了简单，假设给自己发的名字是 "User"
+            networkRepository.sendReminder(uid, "Your Friend", friendId)
             onComplete()
+        }
+    }
+
+    /** 拉黑用户 */
+    fun blockUser(friendId: String, onComplete: () -> Unit = {}) {
+        val uid = authRepository.currentUid ?: return
+        viewModelScope.launch {
+            networkRepository.blockUser(uid, friendId)
+            onComplete()
+        }
+    }
+
+    /** 举报用户 */
+    fun reportUser(friendId: String, reason: String, onComplete: () -> Unit = {}) {
+        val uid = authRepository.currentUid ?: return
+        viewModelScope.launch {
+            networkRepository.reportUser(uid, friendId, reason)
+            onComplete()
+        }
+    }
+
+    /** 删除好友，双向移除 Firestore 关系 */
+    fun removeFriend(friendId: String, onComplete: () -> Unit = {}) {
+        val uid = authRepository.currentUid ?: return
+        viewModelScope.launch {
+            networkRepository.removeFriend(uid, friendId)
+            onComplete()
+        }
+    }
+
+    /** 实时监听单个好友文档 */
+    fun getFriendById(friendId: String): Flow<Friend?> {
+        val uid = authRepository.currentUid ?: return flow { emit(null) }
+        return networkRepository.observeFriendById(uid, friendId)
+    }
+
+    /** 注入测试数据 (可以在 init 中调用一次) */
+    fun seedTestData() {
+        viewModelScope.launch {
+            networkRepository.seedMockUsers()
+        }
+    }
+
+    // --- Groups Logic ---
+    fun createGroup(name: String, memberIds: List<String>) {
+        val uid = authRepository.currentUid ?: return
+        viewModelScope.launch {
+            networkRepository.createGroup(name, uid, memberIds)
         }
     }
 

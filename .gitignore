@@ -1,11 +1,10 @@
 # Android
-.gradle/
-local.properties
-/build
+**/build/
+**/.gradle/
 Captures/
 .externalNativeBuild
 .cxx
-local.properties
+**/local.properties
 *.jks
 *.keystore
 *.apk

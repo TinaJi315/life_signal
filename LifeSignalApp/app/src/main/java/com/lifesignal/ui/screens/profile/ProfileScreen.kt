@@ -1,8 +1,9 @@
 package com.lifesignal.ui.screens.profile
 
-import android.content.Intent
 import android.net.Uri
-import androidx.compose.foundation.Image
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.PickVisualMediaRequest
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -26,12 +27,14 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.viewmodel.compose.viewModel
+import coil.compose.AsyncImage
 import com.google.android.gms.maps.model.CameraPosition
 import com.google.android.gms.maps.model.LatLng
 import com.google.maps.android.compose.GoogleMap
@@ -43,6 +46,8 @@ import com.google.maps.android.compose.rememberCameraPositionState
 import com.lifesignal.data.repository.AuthRepository
 import com.lifesignal.data.repository.UserRepository
 import com.lifesignal.data.model.Contact
+import android.content.Intent
+import android.net.Uri as AndroidUri
 
 @Composable
 fun ProfileScreen(
@@ -50,18 +55,30 @@ fun ProfileScreen(
     onShareProfileClick: () -> Unit,
     onAddContactClick: () -> Unit,
     onPrivacySecurityClick: () -> Unit,
-    onNotificationPreferencesClick: () -> Unit
+    onNotificationPreferencesClick: () -> Unit,
+    profileViewModel: ProfileViewModel = viewModel()
 ) {
     val authRepo = remember { AuthRepository() }
     val userRepo = remember { UserRepository() }
     val context = LocalContext.current
     val currentUid = authRepo.currentUid
 
-    // Real-time Firestore Contacts
+    // 实时用户资料
+    val user by profileViewModel.user.collectAsStateWithLifecycle()
+    val isUploadingAvatar by profileViewModel.isUploadingAvatar.collectAsStateWithLifecycle()
+
+    // 实时联系人
     val contactsFlow = remember(currentUid) {
         if (currentUid != null) userRepo.observeContacts(currentUid) else kotlinx.coroutines.flow.flowOf(emptyList())
     }
     val contacts by contactsFlow.collectAsStateWithLifecycle(initialValue = emptyList())
+
+    // 相册选图启动器
+    val photoPickerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.PickVisualMedia()
+    ) { uri: Uri? ->
+        uri?.let { profileViewModel.uploadAvatar(it) }
+    }
 
     Scaffold(
         topBar = {
@@ -97,19 +114,34 @@ fun ProfileScreen(
         ) {
             item {
                 Spacer(modifier = Modifier.height(32.dp))
-                // Avatar
+                // 头像区域
                 Box(modifier = Modifier.size(120.dp)) {
-                    // Placeholder for Avatar Image
                     Box(
                         modifier = Modifier
                             .fillMaxSize()
-                            .background(MaterialTheme.colorScheme.surfaceVariant, CircleShape)
+                            .clip(CircleShape)
+                            .background(MaterialTheme.colorScheme.surfaceVariant)
                             .border(4.dp, MaterialTheme.colorScheme.background, CircleShape),
                         contentAlignment = Alignment.Center
                     ) {
-                        Icon(Icons.Default.SupervisorAccount, contentDescription = null, Modifier.size(60.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                        val avatarUrl = user?.profileImageUrl
+                        if (!avatarUrl.isNullOrBlank()) {
+                            AsyncImage(
+                                model = avatarUrl,
+                                contentDescription = "头像",
+                                contentScale = ContentScale.Crop,
+                                modifier = Modifier.fillMaxSize().clip(CircleShape)
+                            )
+                        } else {
+                            Icon(
+                                Icons.Default.SupervisorAccount,
+                                contentDescription = null,
+                                Modifier.size(60.dp),
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
                     }
-                    // Edit Icon Badge
+                    // 编辑图标徽章
                     Box(
                         modifier = Modifier
                             .align(Alignment.BottomEnd)
@@ -117,24 +149,36 @@ fun ProfileScreen(
                             .size(36.dp)
                             .background(MaterialTheme.colorScheme.primary, CircleShape)
                             .border(3.dp, MaterialTheme.colorScheme.background, CircleShape)
-                            .clickable { },
+                            .clickable(enabled = !isUploadingAvatar) {
+                                photoPickerLauncher.launch(
+                                    PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
+                                )
+                            },
                         contentAlignment = Alignment.Center
                     ) {
-                        Icon(Icons.Default.Edit, contentDescription = null, tint = Color.White, modifier = Modifier.size(16.dp))
+                        if (isUploadingAvatar) {
+                            CircularProgressIndicator(
+                                color = Color.White,
+                                modifier = Modifier.size(18.dp),
+                                strokeWidth = 2.dp
+                            )
+                        } else {
+                            Icon(Icons.Default.Edit, contentDescription = "编辑头像", tint = Color.White, modifier = Modifier.size(16.dp))
+                        }
                     }
                 }
 
                 Spacer(modifier = Modifier.height(24.dp))
-                // User Name
+                // 真实用户名
                 Text(
-                    "Leon S. Kennedy",
+                    text = user?.name?.ifBlank { "Loading..." } ?: "Loading...",
                     fontSize = 32.sp,
                     fontWeight = FontWeight.Black,
                     color = MaterialTheme.colorScheme.onSurface
                 )
-                
+
                 Spacer(modifier = Modifier.height(16.dp))
-                // Share Profile Button
+                // 分享资料按钮
                 Button(
                     onClick = onShareProfileClick,
                     shape = RoundedCornerShape(12.dp),
@@ -150,7 +194,7 @@ fun ProfileScreen(
             }
 
             item {
-                // Emergency Contacts Section
+                // 紧急联系人区块
                 Card(
                     shape = RoundedCornerShape(24.dp),
                     colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
@@ -167,7 +211,6 @@ fun ProfileScreen(
                                 Spacer(modifier = Modifier.width(12.dp))
                                 Text("Emergency Contacts", fontSize = 18.sp, fontWeight = FontWeight.Black)
                             }
-                            // Add Contact Button
                             Box(
                                 modifier = Modifier
                                     .size(32.dp)
@@ -181,9 +224,8 @@ fun ProfileScreen(
 
                         Spacer(modifier = Modifier.height(24.dp))
 
-                        // Contacts dynamically generated from Firestore
                         contacts.forEach { contact ->
-                            val color = when(contact.colorClass) {
+                            val color = when (contact.colorClass) {
                                 "secondary" -> MaterialTheme.colorScheme.secondary
                                 "tertiary" -> MaterialTheme.colorScheme.tertiary
                                 else -> MaterialTheme.colorScheme.primary
@@ -204,7 +246,7 @@ fun ProfileScreen(
             }
 
             item {
-                // Account Settings Section
+                // 账户设置区块
                 Card(
                     shape = RoundedCornerShape(24.dp),
                     colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
@@ -222,9 +264,9 @@ fun ProfileScreen(
                         SettingRow(title = "Privacy & Security", onClick = onPrivacySecurityClick)
                         Divider(color = MaterialTheme.colorScheme.surfaceVariant, modifier = Modifier.padding(vertical = 12.dp))
                         SettingRow(title = "Notification Preferences", onClick = onNotificationPreferencesClick)
-                        
+
                         Divider(color = MaterialTheme.colorScheme.surfaceVariant, modifier = Modifier.padding(vertical = 12.dp))
-                        
+
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -241,7 +283,7 @@ fun ProfileScreen(
                         }
                     }
                 }
-                
+
                 Spacer(modifier = Modifier.height(32.dp))
             }
 
@@ -261,7 +303,7 @@ fun ProfileScreen(
                     elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
                     modifier = Modifier.fillMaxWidth().height(220.dp)
                 ) {
-                    val startLocation = LatLng(39.11, -94.62) // Dummy Coordinate
+                    val startLocation = LatLng(39.11, -94.62)
                     val cameraPositionState = rememberCameraPositionState {
                         position = CameraPosition.fromLatLngZoom(startLocation, 12f)
                     }
@@ -314,14 +356,13 @@ fun EmergencyContactItem(initials: String, name: String, relation: String, color
             }
 
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                // Phone Icon intent
                 Box(
                     modifier = Modifier
                         .size(36.dp)
                         .background(MaterialTheme.colorScheme.surfaceVariant, RoundedCornerShape(8.dp))
                         .clickable {
                             val intent = Intent(Intent.ACTION_DIAL).apply {
-                                data = Uri.parse("tel:$phone")
+                                data = AndroidUri.parse("tel:$phone")
                             }
                             context.startActivity(intent)
                         },
@@ -329,14 +370,13 @@ fun EmergencyContactItem(initials: String, name: String, relation: String, color
                 ) {
                     Icon(Icons.Default.Call, contentDescription = "Call", tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(18.dp))
                 }
-                // SMS Icon intent
                 Box(
                     modifier = Modifier
                         .size(36.dp)
                         .background(MaterialTheme.colorScheme.surfaceVariant, RoundedCornerShape(8.dp))
                         .clickable {
                             val intent = Intent(Intent.ACTION_SENDTO).apply {
-                                data = Uri.parse("smsto:$phone")
+                                data = AndroidUri.parse("smsto:$phone")
                             }
                             context.startActivity(intent)
                         },

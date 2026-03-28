@@ -128,9 +128,8 @@ fun NewGroupScreen(onBack: () -> Unit, viewModel: NetworkViewModel = viewModel()
             // Create Group button
             Button(
                 onClick = {
-                    viewModel.createGroup(groupName, selectedMembers.toList()) {
-                        onBack()
-                    }
+                    viewModel.createGroup(groupName, selectedMembers.map { it.id })
+                    onBack()
                 },
                 modifier = Modifier.fillMaxWidth().padding(bottom = 32.dp).height(56.dp),
                 shape = RoundedCornerShape(12.dp),

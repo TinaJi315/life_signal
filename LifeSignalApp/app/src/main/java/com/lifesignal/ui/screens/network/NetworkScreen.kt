@@ -34,7 +34,7 @@ import com.lifesignal.data.model.Group
 fun NetworkScreen(
     onAddFriendClick: () -> Unit,
     onShareProfileClick: () -> Unit,
-    onFriendClick: (name: String, isSafe: Boolean, time: String) -> Unit,
+    onFriendClick: (friendId: String, name: String, isSafe: Boolean, time: String) -> Unit,
     onGroupClick: () -> Unit,
     onAddGroupClick: () -> Unit,
     viewModel: NetworkViewModel = viewModel()
@@ -107,7 +107,7 @@ fun NetworkScreen(
                         time = "Recently",
                         isSafe = isSafe,
                         initials = initials,
-                        onClick = { onFriendClick(friend.name, isSafe, "Recently") }
+                        onClick = { onFriendClick(friend.id, friend.name, isSafe, friend.lastUpdated.ifBlank { "Recently" }) }
                     )
                     Spacer(modifier = Modifier.height(16.dp))
                 }

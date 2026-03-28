@@ -48,12 +48,13 @@ fun MainScreen(
     onSignOut: () -> Unit,
     onAddFriendClick: () -> Unit = {},
     onShareProfileClick: () -> Unit = {},
-    onFriendClick: (String, Boolean, String) -> Unit = { _, _, _ -> },
+    onFriendClick: (String, String, Boolean, String) -> Unit = { _, _, _, _ -> },
     onGroupClick: () -> Unit = {},
     onAddGroupClick: () -> Unit = {},
     onAddContactClick: () -> Unit = {},
     onPrivacySecurityClick: () -> Unit = {},
-    onNotificationPreferencesClick: () -> Unit = {}
+    onNotificationPreferencesClick: () -> Unit = {},
+    onCheckInHistoryClick: () -> Unit = {}
 ) {
     val bottomNavController = rememberNavController()
 
@@ -113,7 +114,7 @@ fun MainScreen(
                 .fillMaxSize()
                 .padding(innerPadding)
         ) {
-            composable(BottomNavItem.Home.route) { HomeScreen() }
+            composable(BottomNavItem.Home.route) { HomeScreen(onCheckInHistoryClick = onCheckInHistoryClick) }
             composable(BottomNavItem.Network.route) { NetworkScreen(onAddFriendClick, onShareProfileClick, onFriendClick, onGroupClick, onAddGroupClick) }
             composable(BottomNavItem.Profile.route) { 
                 ProfileScreen(

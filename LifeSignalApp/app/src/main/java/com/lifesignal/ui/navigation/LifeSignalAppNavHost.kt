@@ -18,6 +18,7 @@ import com.lifesignal.ui.screens.profile.ProfileScreen
 import com.lifesignal.ui.screens.profile.AddContactScreen
 import com.lifesignal.ui.screens.profile.PrivacySecurityScreen
 import com.lifesignal.ui.screens.profile.NotificationPreferencesScreen
+import com.lifesignal.ui.screens.home.CheckInHistoryScreen
 
 @Composable
 fun LifeSignalAppNavHost() {
@@ -54,8 +55,8 @@ fun LifeSignalAppNavHost() {
                 onShareProfileClick = {
                     navController.navigate("share_profile")
                 },
-                onFriendClick = { friendName, isSafe, time ->
-                    navController.navigate("friend_detail/$friendName/$isSafe/$time")
+                onFriendClick = { friendId, friendName, isSafe, time ->
+                    navController.navigate("friend_detail/$friendId/$friendName/$isSafe/$time")
                 },
                 onGroupClick = {
                     navController.navigate("group_detail")
@@ -71,6 +72,9 @@ fun LifeSignalAppNavHost() {
                 },
                 onNotificationPreferencesClick = {
                     navController.navigate("notification_preferences")
+                },
+                onCheckInHistoryClick = {
+                    navController.navigate("checkin_history")
                 }
             )
         }
@@ -82,21 +86,25 @@ fun LifeSignalAppNavHost() {
         composable("share_profile") {
             ShareProfileScreen(onBack = { navController.popBackStack() })
         }
-        composable("friend_detail/{name}/{safe}/{time}") { backStackEntry ->
+        composable("friend_detail/{friendId}/{name}/{safe}/{time}") { backStackEntry ->
+            val friendId = backStackEntry.arguments?.getString("friendId") ?: ""
             val name = backStackEntry.arguments?.getString("name") ?: ""
             val safe = backStackEntry.arguments?.getString("safe")?.toBoolean() ?: true
             val time = backStackEntry.arguments?.getString("time") ?: ""
             FriendDetailScreen(
+                friendId = friendId,
                 friendName = name,
                 isSafe = safe,
                 lastTime = time,
                 onBack = { navController.popBackStack() },
-                onViewProfile = { navController.navigate("friend_profile/$name") }
+                onViewProfile = { navController.navigate("friend_profile/$friendId/$name") }
             )
         }
-        composable("friend_profile/{name}") { backStackEntry ->
+        composable("friend_profile/{friendId}/{name}") { backStackEntry ->
+            val friendId = backStackEntry.arguments?.getString("friendId") ?: ""
             val name = backStackEntry.arguments?.getString("name") ?: ""
             FriendProfileScreen(
+                friendId = friendId,
                 name = name,
                 onBack = { navController.popBackStack() },
                 onDone = { navController.popBackStack() }
@@ -126,6 +134,9 @@ fun LifeSignalAppNavHost() {
         }
         composable("notification_preferences") {
             NotificationPreferencesScreen(onBack = { navController.popBackStack() })
+        }
+        composable("checkin_history") {
+            CheckInHistoryScreen(onBack = { navController.popBackStack() })
         }
     }
 }

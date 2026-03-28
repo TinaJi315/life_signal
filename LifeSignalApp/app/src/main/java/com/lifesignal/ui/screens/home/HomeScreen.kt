@@ -35,16 +35,19 @@ import java.text.SimpleDateFormat
 import java.util.Locale
 
 @Composable
-fun HomeScreen(viewModel: HomeViewModel = viewModel()) {
+fun HomeScreen(
+    onCheckInHistoryClick: () -> Unit = {},
+    viewModel: HomeViewModel = viewModel()
+) {
     val isCheckedIn by viewModel.isCheckedIn.collectAsState()
     val isCheckingIn by viewModel.isCheckingIn.collectAsState()
     val lastCheckIn by viewModel.lastCheckIn.collectAsState()
+    val nextCheckInText by viewModel.nextCheckInText.collectAsState()
+    val remainingTime by viewModel.remainingTimeText.collectAsState()
 
-    // 申请位置权限
     val locationPermissionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestMultiplePermissions()
-    ) { permissions ->
-        // 不管是否同意都执行签到，如果拒绝了，会在 ViewModel 里默认 Unknown 位置
+    ) { _ ->
         viewModel.doCheckIn()
     }
 
@@ -59,38 +62,35 @@ fun HomeScreen(viewModel: HomeViewModel = viewModel()) {
         ) {
             Spacer(modifier = Modifier.height(32.dp))
 
-            CrossfadeContent(isCheckedIn = isCheckedIn) {
+            AnimatedVisibility(
+                visible = true,
+                enter = fadeIn() + scaleIn(initialScale = 0.95f),
+                exit = fadeOut() + scaleOut(targetScale = 0.95f)
+            ) {
                 if (isCheckedIn) {
                     CheckedInView(
-                        lastTime = lastCheckIn?.timestamp?.let { 
-                            SimpleDateFormat("hh:mm a", Locale.getDefault()).format(it) 
+                        lastTime = lastCheckIn?.timestamp?.let {
+                            SimpleDateFormat("hh:mm a", Locale.getDefault()).format(it)
                         } ?: "Just now",
                         lastLocation = lastCheckIn?.location?.takeIf { it.isNotBlank() && it != "Unknown" } ?: "Locating...",
-                        onDebugReset = { viewModel.debugResetState() }
+                        nextCheckInText = nextCheckInText,
+                        onDebugReset = { viewModel.debugResetState() },
+                        onHistoryClick = onCheckInHistoryClick
                     )
                 } else {
                     NotCheckedInView(
                         isCheckingIn = isCheckingIn,
+                        remainingHours = remainingTime.first,
+                        remainingMinutes = remainingTime.second,
                         onCheckInClick = {
-                            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                                locationPermissionLauncher.launch(
-                                    arrayOf(
-                                        Manifest.permission.ACCESS_FINE_LOCATION,
-                                        Manifest.permission.ACCESS_COARSE_LOCATION,
-                                        Manifest.permission.SEND_SMS,
-                                        Manifest.permission.READ_PHONE_STATE
-                                    )
+                            locationPermissionLauncher.launch(
+                                arrayOf(
+                                    Manifest.permission.ACCESS_FINE_LOCATION,
+                                    Manifest.permission.ACCESS_COARSE_LOCATION,
+                                    Manifest.permission.SEND_SMS,
+                                    Manifest.permission.READ_PHONE_STATE
                                 )
-                            } else {
-                                locationPermissionLauncher.launch(
-                                    arrayOf(
-                                        Manifest.permission.ACCESS_FINE_LOCATION,
-                                        Manifest.permission.ACCESS_COARSE_LOCATION,
-                                        Manifest.permission.SEND_SMS,
-                                        Manifest.permission.READ_PHONE_STATE
-                                    )
-                                )
-                            }
+                            )
                         }
                     )
                 }
@@ -99,20 +99,13 @@ fun HomeScreen(viewModel: HomeViewModel = viewModel()) {
     }
 }
 
-// 带淡入淡出的状态切换动画
 @Composable
-fun CrossfadeContent(isCheckedIn: Boolean, content: @Composable () -> Unit) {
-    AnimatedVisibility(
-        visible = true,
-        enter = fadeIn() + scaleIn(initialScale = 0.95f),
-        exit = fadeOut() + scaleOut(targetScale = 0.95f)
-    ) {
-        content()
-    }
-}
-
-@Composable
-fun NotCheckedInView(isCheckingIn: Boolean, onCheckInClick: () -> Unit) {
+fun NotCheckedInView(
+    isCheckingIn: Boolean,
+    remainingHours: String,
+    remainingMinutes: String,
+    onCheckInClick: () -> Unit
+) {
     Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.fillMaxWidth()) {
         Text(
             text = "You haven't checked in today",
@@ -134,16 +127,14 @@ fun NotCheckedInView(isCheckingIn: Boolean, onCheckInClick: () -> Unit) {
 
         Spacer(modifier = Modifier.height(48.dp))
 
-        // Big Safe Button (1:1 React UI)
+        // Big Safe Button
         Box(contentAlignment = Alignment.Center, modifier = Modifier.size(300.dp)) {
-            // 背景模糊光晕
             Box(
                 modifier = Modifier
                     .size(280.dp)
                     .blur(50.dp)
                     .background(MaterialTheme.colorScheme.secondary.copy(alpha = 0.2f), CircleShape)
             )
-            // 实体按钮
             Surface(
                 shape = CircleShape,
                 color = MaterialTheme.colorScheme.secondary,
@@ -171,7 +162,7 @@ fun NotCheckedInView(isCheckingIn: Boolean, onCheckInClick: () -> Unit) {
 
         Spacer(modifier = Modifier.height(48.dp))
 
-        // Time remaining
+        // Dynamic countdown
         Text(
             text = "TIME REMAINING TO CHECK IN:",
             fontSize = 14.sp,
@@ -180,16 +171,24 @@ fun NotCheckedInView(isCheckingIn: Boolean, onCheckInClick: () -> Unit) {
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
         Row(verticalAlignment = Alignment.Bottom) {
-            Text("4", fontSize = 48.sp, fontWeight = FontWeight.Black, color = MaterialTheme.colorScheme.primary)
-            Text("h", fontSize = 24.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary, modifier = Modifier.padding(bottom = 6.dp, start = 4.dp, end = 8.dp))
-            Text("20", fontSize = 48.sp, fontWeight = FontWeight.Black, color = MaterialTheme.colorScheme.primary)
-            Text("m", fontSize = 24.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary, modifier = Modifier.padding(bottom = 6.dp, start = 4.dp))
+            Text(remainingHours, fontSize = 48.sp, fontWeight = FontWeight.Black, color = MaterialTheme.colorScheme.primary)
+            Text("h", fontSize = 24.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.padding(bottom = 6.dp, start = 4.dp, end = 8.dp))
+            Text(remainingMinutes, fontSize = 48.sp, fontWeight = FontWeight.Black, color = MaterialTheme.colorScheme.primary)
+            Text("m", fontSize = 24.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.padding(bottom = 6.dp, start = 4.dp))
         }
     }
 }
 
 @Composable
-fun CheckedInView(lastTime: String, lastLocation: String, onDebugReset: () -> Unit) {
+fun CheckedInView(
+    lastTime: String,
+    lastLocation: String,
+    nextCheckInText: String,
+    onDebugReset: () -> Unit,
+    onHistoryClick: () -> Unit
+) {
     Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.fillMaxWidth()) {
         Text(
             text = "Checked-in",
@@ -208,14 +207,14 @@ fun CheckedInView(lastTime: String, lastLocation: String, onDebugReset: () -> Un
 
         Spacer(modifier = Modifier.height(48.dp))
 
-        // Checked In Circle
+        // Checked In Circle (debug reset tap)
         Box(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(vertical = 16.dp)
                 .background(MaterialTheme.colorScheme.surfaceVariant, RoundedCornerShape(32.dp))
                 .border(4.dp, MaterialTheme.colorScheme.surfaceVariant, RoundedCornerShape(32.dp))
-                .clickable { onDebugReset() } // 隐藏的彩蛋：点这个大卡片退回签到前
+                .clickable { onDebugReset() }
                 .padding(32.dp),
             contentAlignment = Alignment.Center
         ) {
@@ -238,7 +237,7 @@ fun CheckedInView(lastTime: String, lastLocation: String, onDebugReset: () -> Un
 
         Spacer(modifier = Modifier.height(24.dp))
 
-        // Info Cards
+        // Next check-in — dynamic
         Card(
             shape = RoundedCornerShape(24.dp),
             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
@@ -250,43 +249,50 @@ fun CheckedInView(lastTime: String, lastLocation: String, onDebugReset: () -> Un
                     modifier = Modifier.size(64.dp).background(MaterialTheme.colorScheme.primary.copy(0.1f), CircleShape),
                     contentAlignment = Alignment.Center
                 ) {
-                    Icon(Icons.Default.CalendarMonth, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(32.dp))
+                    Icon(Icons.Default.CalendarMonth, contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(32.dp))
                 }
                 Spacer(modifier = Modifier.width(16.dp))
                 Column {
-                    Text("Next Check-in", fontSize = 16.sp, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    Text("Tomorrow 08:00 PM", fontSize = 20.sp, fontWeight = FontWeight.Black, color = MaterialTheme.colorScheme.onSurface)
+                    Text("Next Check-in", fontSize = 16.sp, fontWeight = FontWeight.SemiBold,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text(nextCheckInText, fontSize = 20.sp, fontWeight = FontWeight.Black,
+                        color = MaterialTheme.colorScheme.onSurface)
                 }
             }
         }
 
         Spacer(modifier = Modifier.height(16.dp))
 
+        // Last Record — clickable, goes to history
         Card(
             shape = RoundedCornerShape(24.dp),
             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
-            modifier = Modifier.fillMaxWidth()
+            modifier = Modifier
+                .fillMaxWidth()
+                .clickable { onHistoryClick() }
         ) {
             Row(modifier = Modifier.padding(24.dp), verticalAlignment = Alignment.CenterVertically) {
                 Box(
                     modifier = Modifier.size(64.dp).background(MaterialTheme.colorScheme.secondary.copy(0.1f), CircleShape),
                     contentAlignment = Alignment.Center
                 ) {
-                    Icon(Icons.Default.History, contentDescription = null, tint = MaterialTheme.colorScheme.secondary, modifier = Modifier.size(32.dp))
+                    Icon(Icons.Default.History, contentDescription = null,
+                        tint = MaterialTheme.colorScheme.secondary, modifier = Modifier.size(32.dp))
                 }
                 Spacer(modifier = Modifier.width(16.dp))
                 Column(modifier = Modifier.weight(1f)) {
-                    Text("Last Record", fontSize = 16.sp, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    Text("Today $lastTime", fontSize = 20.sp, fontWeight = FontWeight.Black, color = MaterialTheme.colorScheme.onSurface)
-                    Spacer(modifier = Modifier.height(2.dp))
-                    Text(lastLocation, fontSize = 14.sp, fontWeight = FontWeight.Medium, color = MaterialTheme.colorScheme.primary, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    Text("Last Record", fontSize = 16.sp, fontWeight = FontWeight.SemiBold,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text("Today $lastTime", fontSize = 20.sp, fontWeight = FontWeight.Black,
+                        color = MaterialTheme.colorScheme.onSurface)
                 }
                 Surface(
                     color = MaterialTheme.colorScheme.secondary.copy(alpha = 0.2f),
                     shape = RoundedCornerShape(12.dp)
                 ) {
                     Text(
-                        text = "Completed",
+                        text = "View All",
                         modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
                         color = MaterialTheme.colorScheme.secondary,
                         fontWeight = FontWeight.Bold,
