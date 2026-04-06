@@ -56,44 +56,11 @@ fun CheckInSettingsScreen(
                 Spacer(modifier = Modifier.height(8.dp))
 
                 Text(
-                    "Configure how often you need to check in and the grace period before an emergency alert is triggered.",
+                    "Configure the grace period before an emergency alert is triggered if you miss your daily check-in.",
                     fontSize = 14.sp,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(vertical = 8.dp)
+                    modifier = Modifier.padding(vertical = 24.dp)
                 )
-
-                Spacer(modifier = Modifier.height(24.dp))
-
-                Text("Check-In Frequency", fontWeight = FontWeight.Bold, fontSize = 16.sp)
-                Spacer(modifier = Modifier.height(8.dp))
-
-                Card(
-                    shape = RoundedCornerShape(20.dp),
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Column(modifier = Modifier.padding(vertical = 8.dp)) {
-                        SelectionRow(
-                            title = "Every 12 Hours",
-                            isSelected = settings.frequencyHours == 12,
-                            onClick = { viewModel.setFrequencyHours(12) }
-                        )
-                        Divider(color = MaterialTheme.colorScheme.surfaceVariant, modifier = Modifier.padding(horizontal = 20.dp))
-                        SelectionRow(
-                            title = "Every 24 Hours",
-                            isSelected = settings.frequencyHours == 24,
-                            onClick = { viewModel.setFrequencyHours(24) }
-                        )
-                        Divider(color = MaterialTheme.colorScheme.surfaceVariant, modifier = Modifier.padding(horizontal = 20.dp))
-                        SelectionRow(
-                            title = "Every 48 Hours",
-                            isSelected = settings.frequencyHours == 48,
-                            onClick = { viewModel.setFrequencyHours(48) }
-                        )
-                    }
-                }
-
-                Spacer(modifier = Modifier.height(32.dp))
 
                 Text("Grace Period", fontWeight = FontWeight.Bold, fontSize = 16.sp)
                 Text(
