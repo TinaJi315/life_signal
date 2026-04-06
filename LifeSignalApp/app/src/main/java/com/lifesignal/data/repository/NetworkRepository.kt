@@ -214,15 +214,36 @@ class NetworkRepository {
      * 对应前端 AddFriendPage 中的搜索栏
      */
     fun searchUsers(query: String): Flow<List<User>> = kotlinx.coroutines.flow.flow {
+        if (query.isBlank()) {
+            emit(emptyList())
+            return@flow
+        }
         try {
-            val snapshot = firestore.collection(User.COLLECTION)
+            val users = mutableListOf<User>()
+            
+            // 姓名按前缀搜索 (区分大小写原版逻辑，尽量保留)
+            val nameSnapshot = firestore.collection(User.COLLECTION)
                 .whereGreaterThanOrEqualTo("name", query)
                 .whereLessThanOrEqualTo("name", query + "\uf8ff")
                 .limit(20)
                 .get()
                 .await()
-            val users = snapshot.toObjects(User::class.java)
-            emit(users)
+            users.addAll(nameSnapshot.toObjects(User::class.java))
+
+            // 邮箱按前缀搜索 (转换为小写，解决大小写找不到的问题)
+            val queryLower = query.lowercase()
+            if (queryLower.contains("@") || queryLower.isNotEmpty()) {
+                val emailSnapshot = firestore.collection(User.COLLECTION)
+                    .whereGreaterThanOrEqualTo("email", queryLower)
+                    .whereLessThanOrEqualTo("email", queryLower + "\uf8ff")
+                    .limit(20)
+                    .get()
+                    .await()
+                users.addAll(emailSnapshot.toObjects(User::class.java))
+            }
+            
+            // 去重并返回
+            emit(users.distinctBy { it.uid })
         } catch (e: Exception) {
             emit(emptyList())
         }

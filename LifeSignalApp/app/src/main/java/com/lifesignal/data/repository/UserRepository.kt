@@ -211,4 +211,45 @@ class UserRepository {
             Result.failure(e)
         }
     }
+
+    // ==================== 签到设置 ====================
+
+    /**
+     * 获取签到设置
+     */
+    suspend fun getCheckInSettings(uid: String): Result<com.lifesignal.data.model.CheckInSettings> {
+        return try {
+            val doc = firestore.collection(User.COLLECTION)
+                .document(uid)
+                .collection("settings")
+                .document("check_in")
+                .get()
+                .await()
+            val settings = doc.toObject(com.lifesignal.data.model.CheckInSettings::class.java)
+                ?: com.lifesignal.data.model.CheckInSettings(userUid = uid)
+            Result.success(settings)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    /**
+     * 更新签到设置
+     */
+    suspend fun updateCheckInSettings(
+        uid: String,
+        settings: com.lifesignal.data.model.CheckInSettings
+    ): Result<Unit> {
+        return try {
+            firestore.collection(User.COLLECTION)
+                .document(uid)
+                .collection("settings")
+                .document("check_in")
+                .set(settings)
+                .await()
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
 }

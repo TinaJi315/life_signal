@@ -1,0 +1,14 @@
+﻿ M LifeSignalApp/app/src/main/AndroidManifest.xml
+ M LifeSignalApp/app/src/main/java/com/lifesignal/MainActivity.kt
+ M LifeSignalApp/app/src/main/java/com/lifesignal/data/model/User.kt
+ M LifeSignalApp/app/src/main/java/com/lifesignal/data/service/CheckInService.kt
+ M LifeSignalApp/app/src/main/java/com/lifesignal/data/worker/AlertScheduler.kt
+ M LifeSignalApp/app/src/main/java/com/lifesignal/data/worker/EmergencyAlertWorker.kt
+ M LifeSignalApp/app/src/main/java/com/lifesignal/ui/screens/home/HomeScreen.kt
+ M LifeSignalApp/app/src/main/java/com/lifesignal/ui/screens/home/HomeViewModel.kt
+ M LifeSignalApp/app/src/main/java/com/lifesignal/ui/theme/Color.kt
+ M android-backend/model/User.kt
+?? LifeSignalApp/app/src/main/java/com/lifesignal/data/model/EmergencyIncident.kt
+?? LifeSignalApp/app/src/main/java/com/lifesignal/data/worker/WarningAlertWorker.kt
+?? git_status.txt
+?? git_status_utf8.txt

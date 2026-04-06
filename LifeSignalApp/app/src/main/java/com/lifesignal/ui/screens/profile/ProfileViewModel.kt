@@ -57,4 +57,15 @@ class ProfileViewModel(application: Application) : AndroidViewModel(application)
             }
         }
     }
+
+    /** 更新文字简历 */
+    fun updateProfile(name: String, phone: String) {
+        val uid = authRepository.currentUid ?: return
+        viewModelScope.launch {
+            userRepository.updateUser(uid, mapOf(
+                "name" to name,
+                "phone" to phone
+            ))
+        }
+    }
 }

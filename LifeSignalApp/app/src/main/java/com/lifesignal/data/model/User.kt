@@ -18,7 +18,7 @@ data class User(
     val phone: String = "",
     val profileImageUrl: String = "",
     val isCheckedIn: Boolean = false,
-    val status: String = "safe",         // "safe" | "overdue"
+    val status: String = "safe",         // "safe" | "warning" | "emergency"
     val location: String = "",
     val lastCheckInTime: Date? = null,
     val nextCheckInTime: Date? = null,

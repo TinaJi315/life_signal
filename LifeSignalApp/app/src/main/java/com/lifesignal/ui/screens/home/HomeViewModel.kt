@@ -44,12 +44,16 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
     val nextCheckInText: StateFlow<String> = _nextCheckInText.asStateFlow()
 
     /** 倒计时剩余时间文本 */
-    private val _remainingTimeText = MutableStateFlow(Pair("—", "—"))  // Pair(hours, minutes)
+    private val _remainingTimeText = MutableStateFlow(Pair("—", "—"))
     val remainingTimeText: StateFlow<Pair<String, String>> = _remainingTimeText.asStateFlow()
 
     /** 签到历史 */
     private val _checkInHistory = MutableStateFlow<List<CheckIn>>(emptyList())
     val checkInHistory: StateFlow<List<CheckIn>> = _checkInHistory.asStateFlow()
+
+    /** 用户安全状态: "safe" | "warning" | "emergency" */
+    private val _userStatus = MutableStateFlow("safe")
+    val userStatus: StateFlow<String> = _userStatus.asStateFlow()
 
     init {
         loadCheckInStatus()
@@ -76,7 +80,7 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
-    /** 实时监听用户文档，获取 nextCheckInTime */
+    /** 实时监听用户文档，获取 nextCheckInTime 和 status */
     private fun observeUserData() {
         val uid = authRepository.currentUser?.uid ?: return
         viewModelScope.launch {
@@ -85,6 +89,9 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
                 _nextCheckInDate.value = nextTime
                 _nextCheckInText.value = nextTime?.let { formatNextCheckIn(it) } ?: "Not scheduled"
                 updateCountdown(nextTime)
+
+                // 同步用户安全状态
+                _userStatus.value = user?.status ?: "safe"
             }
         }
     }
@@ -93,7 +100,7 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
     private fun startCountdownTicker() {
         viewModelScope.launch {
             while (true) {
-                delay(60_000L) // 每分钟
+                delay(60_000L)
                 updateCountdown(_nextCheckInDate.value)
             }
         }
@@ -150,7 +157,8 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
                 val historyResult = checkInService.getCheckInHistory(uid, 20)
                 _checkInHistory.value = historyResult.getOrNull() ?: emptyList()
 
-                AlertScheduler.scheduleAlert(getApplication(), 30)
+                // 重置双阶段警报计时器
+                AlertScheduler.scheduleAlerts(getApplication(), 30, 60)
             }
             _isCheckingIn.value = false
         }

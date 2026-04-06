@@ -32,3 +32,8 @@ val Error = Color(0xFFBA1A1A)
 val OnError = Color(0xFFFFFFFF)
 val ErrorContainer = Color(0xFFFFDAD6)
 val OnErrorContainer = Color(0xFF410002)
+
+// 警告色 (琥珀色系)
+val Warning = Color(0xFFF59E0B)
+val WarningContainer = Color(0xFFFEF3C7)
+val OnWarning = Color(0xFF78350F)

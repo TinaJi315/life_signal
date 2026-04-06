@@ -4,6 +4,7 @@ import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.Query
 import com.google.firebase.firestore.SetOptions
 import com.lifesignal.data.model.CheckIn
+import com.lifesignal.data.model.EmergencyIncident
 import com.lifesignal.data.model.User
 import kotlinx.coroutines.tasks.await
 import java.util.Calendar
@@ -22,8 +23,9 @@ class CheckInService {
      * 执行签到操作
      * 对应前端 HomePage 中的 "Safe" 按钮点击
      * 1. 在用户的 checkins 子集合中新增一条签到记录
-     * 2. 更新用户的 isCheckedIn 和 lastCheckInTime 字段
+     * 2. 更新用户的 isCheckedIn、status 和 lastCheckInTime 字段
      * 3. 计算并设置下次签到时间
+     * 4. 如果之前处于 emergency 状态，解决活跃的 incident
      */
     suspend fun checkIn(uid: String, location: String = ""): Result<Unit> {
         return try {
@@ -61,9 +63,41 @@ class CheckInService {
             batch.set(userRef, userUpdates, SetOptions.merge())
 
             batch.commit().await()
+
+            // 3. 解决活跃的紧急事件（如有）
+            resolveActiveIncidents(uid)
+
             Result.success(Unit)
         } catch (e: Exception) {
             Result.failure(e)
+        }
+    }
+
+    /**
+     * 解决所有未关闭的紧急事件
+     * 当用户从 warning/emergency 状态恢复签到时调用
+     */
+    private suspend fun resolveActiveIncidents(uid: String) {
+        try {
+            val snapshot = firestore.collection(User.COLLECTION)
+                .document(uid)
+                .collection(EmergencyIncident.COLLECTION)
+                .whereEqualTo("resolved", false)
+                .get()
+                .await()
+
+            val now = Date()
+            for (doc in snapshot.documents) {
+                doc.reference.update(
+                    mapOf(
+                        "resolved" to true,
+                        "resolvedAt" to now
+                    )
+                )
+            }
+        } catch (e: Exception) {
+            // 解决 incident 失败不影响签到主流程
+            android.util.Log.w("CheckInService", "解决活跃 incident 失败", e)
         }
     }
 

@@ -18,6 +18,7 @@ import com.lifesignal.ui.screens.profile.ProfileScreen
 import com.lifesignal.ui.screens.profile.AddContactScreen
 import com.lifesignal.ui.screens.profile.PrivacySecurityScreen
 import com.lifesignal.ui.screens.profile.NotificationPreferencesScreen
+import com.lifesignal.ui.screens.profile.CheckInSettingsScreen
 import com.lifesignal.ui.screens.home.CheckInHistoryScreen
 
 @Composable
@@ -72,6 +73,9 @@ fun LifeSignalAppNavHost() {
                 },
                 onNotificationPreferencesClick = {
                     navController.navigate("notification_preferences")
+                },
+                onCheckInSettingsClick = {
+                    navController.navigate("checkin_settings")
                 },
                 onCheckInHistoryClick = {
                     navController.navigate("checkin_history")
@@ -134,6 +138,9 @@ fun LifeSignalAppNavHost() {
         }
         composable("notification_preferences") {
             NotificationPreferencesScreen(onBack = { navController.popBackStack() })
+        }
+        composable("checkin_settings") {
+            CheckInSettingsScreen(onBack = { navController.popBackStack() })
         }
         composable("checkin_history") {
             CheckInHistoryScreen(onBack = { navController.popBackStack() })

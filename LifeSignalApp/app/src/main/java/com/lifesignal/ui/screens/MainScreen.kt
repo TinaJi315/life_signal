@@ -54,6 +54,7 @@ fun MainScreen(
     onAddContactClick: () -> Unit = {},
     onPrivacySecurityClick: () -> Unit = {},
     onNotificationPreferencesClick: () -> Unit = {},
+    onCheckInSettingsClick: () -> Unit = {},
     onCheckInHistoryClick: () -> Unit = {}
 ) {
     val bottomNavController = rememberNavController()
@@ -122,7 +123,8 @@ fun MainScreen(
                     onShareProfileClick = onShareProfileClick,
                     onAddContactClick = onAddContactClick,
                     onPrivacySecurityClick = onPrivacySecurityClick,
-                    onNotificationPreferencesClick = onNotificationPreferencesClick
+                    onNotificationPreferencesClick = onNotificationPreferencesClick,
+                    onCheckInSettingsClick = onCheckInSettingsClick
                 ) 
             }
         }

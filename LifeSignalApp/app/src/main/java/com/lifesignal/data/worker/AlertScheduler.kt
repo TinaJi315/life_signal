@@ -6,28 +6,50 @@ import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.WorkManager
 import java.util.concurrent.TimeUnit
 
+/**
+ * 双阶段警报调度器
+ *
+ * 签到后同时埋下两个倒计时：
+ *   1. WARNING_WORK  — 24 小时后触发（测试默认 30 秒）
+ *   2. EMERGENCY_WORK — 48 小时后触发（测试默认 60 秒）
+ *
+ * 每次新签到都会 REPLACE 旧任务，重新开始倒计时。
+ */
 object AlertScheduler {
-    private const val WORK_NAME = "emergency_alert_work"
+    private const val WARNING_WORK = "warning_alert_work"
+    private const val EMERGENCY_WORK = "emergency_alert_work"
 
     /**
-     * 埋下倒计时触发器：
-     * 为了实机肉眼验收测试，我们将原本可能长达 24 小时的倒计时缩短至秒级（如 30 秒）。
-     * 只要 30 秒内你没有再次打卡替换掉它，它就会准时发送求救短信。
+     * 埋下双倒计时触发器
+     * @param warningDelaySeconds   警告延迟（生产环境 86400 = 24h）
+     * @param emergencyDelaySeconds 紧急延迟（生产环境 172800 = 48h）
      */
-    fun scheduleAlert(context: Context, delaySeconds: Long = 30) {
-        val request = OneTimeWorkRequestBuilder<EmergencyAlertWorker>()
-            .setInitialDelay(delaySeconds, TimeUnit.SECONDS)
+    fun scheduleAlerts(
+        context: Context,
+        warningDelaySeconds: Long = 30,
+        emergencyDelaySeconds: Long = 60
+    ) {
+        val wm = WorkManager.getInstance(context)
+
+        // 阶段一：WARNING
+        val warningRequest = OneTimeWorkRequestBuilder<WarningAlertWorker>()
+            .setInitialDelay(warningDelaySeconds, TimeUnit.SECONDS)
             .build()
-        
-        // 使用 REPLACE 策略：如果用户及时签到再次调用这个方法，旧的倒计时就会被抹除并重置！
-        WorkManager.getInstance(context).enqueueUniqueWork(
-            WORK_NAME,
-            ExistingWorkPolicy.REPLACE,
-            request
-        )
+        wm.enqueueUniqueWork(WARNING_WORK, ExistingWorkPolicy.REPLACE, warningRequest)
+
+        // 阶段二：EMERGENCY
+        val emergencyRequest = OneTimeWorkRequestBuilder<EmergencyAlertWorker>()
+            .setInitialDelay(emergencyDelaySeconds, TimeUnit.SECONDS)
+            .build()
+        wm.enqueueUniqueWork(EMERGENCY_WORK, ExistingWorkPolicy.REPLACE, emergencyRequest)
     }
 
-    fun cancelAlert(context: Context) {
-        WorkManager.getInstance(context).cancelUniqueWork(WORK_NAME)
+    /**
+     * 取消所有警报（退出登录时调用）
+     */
+    fun cancelAllAlerts(context: Context) {
+        val wm = WorkManager.getInstance(context)
+        wm.cancelUniqueWork(WARNING_WORK)
+        wm.cancelUniqueWork(EMERGENCY_WORK)
     }
 }

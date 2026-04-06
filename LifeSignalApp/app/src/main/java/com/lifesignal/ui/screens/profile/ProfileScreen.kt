@@ -56,6 +56,7 @@ fun ProfileScreen(
     onAddContactClick: () -> Unit,
     onPrivacySecurityClick: () -> Unit,
     onNotificationPreferencesClick: () -> Unit,
+    onCheckInSettingsClick: () -> Unit = {},
     profileViewModel: ProfileViewModel = viewModel()
 ) {
     val authRepo = remember { AuthRepository() }
@@ -80,6 +81,10 @@ fun ProfileScreen(
         uri?.let { profileViewModel.uploadAvatar(it) }
     }
 
+    var showEditProfileDialog by remember { mutableStateOf(false) }
+    var editName by remember(user?.name) { mutableStateOf(user?.name ?: "") }
+    var editPhone by remember(user?.phone) { mutableStateOf(user?.phone ?: "") }
+
     Scaffold(
         topBar = {
             Row(
@@ -99,7 +104,12 @@ fun ProfileScreen(
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text("Profile", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
                     Spacer(modifier = Modifier.width(16.dp))
-                    Icon(Icons.Default.Settings, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Icon(
+                        Icons.Default.Settings, 
+                        contentDescription = "Settings", 
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.clickable { onCheckInSettingsClick() }
+                    )
                 }
             }
         },
@@ -170,12 +180,21 @@ fun ProfileScreen(
 
                 Spacer(modifier = Modifier.height(24.dp))
                 // 真实用户名
-                Text(
-                    text = user?.name?.ifBlank { "Loading..." } ?: "Loading...",
-                    fontSize = 32.sp,
-                    fontWeight = FontWeight.Black,
-                    color = MaterialTheme.colorScheme.onSurface
-                )
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        text = user?.name?.ifBlank { "Loading..." } ?: "Loading...",
+                        fontSize = 32.sp,
+                        fontWeight = FontWeight.Black,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Icon(
+                        Icons.Default.Edit, 
+                        contentDescription = "Edit Profile", 
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.size(24.dp).clickable { showEditProfileDialog = true }
+                    )
+                }
 
                 Spacer(modifier = Modifier.height(16.dp))
                 // 分享资料按钮
@@ -264,6 +283,8 @@ fun ProfileScreen(
                         SettingRow(title = "Privacy & Security", onClick = onPrivacySecurityClick)
                         Divider(color = MaterialTheme.colorScheme.surfaceVariant, modifier = Modifier.padding(vertical = 12.dp))
                         SettingRow(title = "Notification Preferences", onClick = onNotificationPreferencesClick)
+                        Divider(color = MaterialTheme.colorScheme.surfaceVariant, modifier = Modifier.padding(vertical = 12.dp))
+                        SettingRow(title = "Check-In Settings", onClick = onCheckInSettingsClick)
 
                         Divider(color = MaterialTheme.colorScheme.surfaceVariant, modifier = Modifier.padding(vertical = 12.dp))
 
@@ -324,6 +345,43 @@ fun ProfileScreen(
                 Spacer(modifier = Modifier.height(48.dp))
             }
         }
+    }
+
+    if (showEditProfileDialog) {
+        AlertDialog(
+            onDismissRequest = { showEditProfileDialog = false },
+            title = { Text("Edit Profile", fontWeight = FontWeight.Black) },
+            text = {
+                Column {
+                    OutlinedTextField(
+                        value = editName,
+                        onValueChange = { editName = it },
+                        label = { Text("Name") },
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = true
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    OutlinedTextField(
+                        value = editPhone,
+                        onValueChange = { editPhone = it },
+                        label = { Text("Phone") },
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = true
+                    )
+                }
+            },
+            confirmButton = {
+                Button(onClick = { 
+                    profileViewModel.updateProfile(editName, editPhone)
+                    showEditProfileDialog = false 
+                }) {
+                    Text("Save")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showEditProfileDialog = false }) { Text("Cancel") }
+            }
+        )
     }
 }
 
