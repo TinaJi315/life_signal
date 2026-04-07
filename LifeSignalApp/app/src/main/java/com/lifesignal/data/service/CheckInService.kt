@@ -11,28 +11,28 @@ import java.util.Calendar
 import java.util.Date
 
 /**
- * 签到服务
- * 处理签到逻辑、签到历史和签到提醒
- * 对应前端 HomePage 的签到按钮和签到状态展示
+ * Check-in Service
+ * Handles check-in logic, check-in history, and check-in reminders
+ * Corresponds to frontend HomePage's check-in button and check-in status display
  */
 class CheckInService {
 
     private val firestore: FirebaseFirestore = FirebaseFirestore.getInstance()
 
     /**
-     * 执行签到操作
-     * 对应前端 HomePage 中的 "Safe" 按钮点击
-     * 1. 在用户的 checkins 子集合中新增一条签到记录
-     * 2. 更新用户的 isCheckedIn、status 和 lastCheckInTime 字段
-     * 3. 计算并设置下次签到时间
-     * 4. 如果之前处于 emergency 状态，解决活跃的 incident
+     * Execute check-in operation
+     * Corresponds to "Safe" button click on frontend HomePage
+     * 1. Adds a check-in record to user's checkins subcollection
+     * 2. Updates user's isCheckedIn, status, and lastCheckInTime fields
+     * 3. Calculates and sets next check-in time
+     * 4. If previously in emergency state, resolves the active incident
      */
     suspend fun checkIn(uid: String, location: String = ""): Result<Unit> {
         return try {
             val now = Date()
             val batch = firestore.batch()
 
-            // 1. 添加签到记录
+            // 1. Add check-in record
             val checkIn = CheckIn(
                 userUid = uid,
                 status = "safe",
@@ -44,13 +44,24 @@ class CheckInService {
                 .document()
             batch.set(checkInRef, checkIn)
 
-            // 2. 更新用户文档
+            // Get user settings to determine check-in time
+            val settingsDoc = firestore.collection(User.COLLECTION)
+                .document(uid)
+                .collection("settings")
+                .document("check_in")
+                .get()
+                .await()
+            val settings = settingsDoc.toObject(com.lifesignal.data.model.CheckInSettings::class.java)
+                ?: com.lifesignal.data.model.CheckInSettings()
+
+            // 2. Update user document
             val calendar = Calendar.getInstance().apply {
                 time = now
                 add(Calendar.DAY_OF_MONTH, 1)
-                set(Calendar.HOUR_OF_DAY, 20) // 下次签到默认晚上8点
-                set(Calendar.MINUTE, 0)
+                set(Calendar.HOUR_OF_DAY, settings.checkInHour)
+                set(Calendar.MINUTE, settings.checkInMinute)
                 set(Calendar.SECOND, 0)
+                set(Calendar.MILLISECOND, 0)
             }
             val userUpdates = mapOf(
                 "isCheckedIn" to true,
@@ -64,7 +75,7 @@ class CheckInService {
 
             batch.commit().await()
 
-            // 3. 解决活跃的紧急事件（如有）
+            // 3. Resolve active emergency incidents (if any)
             resolveActiveIncidents(uid)
 
             Result.success(Unit)
@@ -74,8 +85,8 @@ class CheckInService {
     }
 
     /**
-     * 解决所有未关闭的紧急事件
-     * 当用户从 warning/emergency 状态恢复签到时调用
+     * Resolve all unclosed emergency incidents
+     * Called when user recovers from warning/emergency state via check-in
      */
     private suspend fun resolveActiveIncidents(uid: String) {
         try {
@@ -96,14 +107,14 @@ class CheckInService {
                 )
             }
         } catch (e: Exception) {
-            // 解决 incident 失败不影响签到主流程
-            android.util.Log.w("CheckInService", "解决活跃 incident 失败", e)
+            // Resolving incident failure doesn't affect main check-in flow
+            android.util.Log.w("CheckInService", "Failed to resolve active incidents", e)
         }
     }
 
     /**
-     * 获取签到历史记录
-     * 对应前端 HomePage 中的 "Last Record" 和 "Previous" 展示
+     * Get check-in history records
+     * Corresponds to "Last Record" and "Previous" display on frontend HomePage
      */
     suspend fun getCheckInHistory(
         uid: String,
@@ -125,8 +136,8 @@ class CheckInService {
     }
 
     /**
-     * 获取最近一次签到记录
-     * 对应前端 HomePage 中的 "Last Check-in" 展示
+     * Get the most recent check-in record
+     * Corresponds to "Last Check-in" display on frontend HomePage
      */
     suspend fun getLastCheckIn(uid: String): Result<CheckIn?> {
         return try {
@@ -145,8 +156,8 @@ class CheckInService {
     }
 
     /**
-     * 检查用户今天是否已签到
-     * 对应前端 HomePage 中判断是否显示 "Checked-in" 还是 "Safe" 按钮
+     * Check if user has checked in today
+     * Determines whether to show "Checked-in" or "Safe" button on frontend HomePage
      */
     suspend fun isCheckedInToday(uid: String): Result<Boolean> {
         return try {
@@ -172,10 +183,10 @@ class CheckInService {
     }
 
     /**
-     * 向群组所有成员发送签到提醒
-     * 对应前端 GroupDetailPage 中的 "Remind All Members" 按钮
-     * 注意：实际推送通知需要配合 Firebase Cloud Messaging (FCM)
-     *       这里仅记录提醒事件到 Firestore
+     * Send check-in reminder to all group members
+     * Corresponds to "Remind All Members" button on GroupDetailPage
+     * Note: Actual push notifications require Firebase Cloud Messaging (FCM)
+     *       This only logs reminder events to Firestore
      */
     suspend fun sendGroupReminder(
         groupId: String,
@@ -195,9 +206,9 @@ class CheckInService {
                 .add(reminder)
                 .await()
 
-            // TODO: 集成 FCM 向各成员发送推送通知
-            // 可通过 Cloud Functions 触发器，监听 reminders 集合的新文档
-            // 然后向各成员的 FCM token 发送推送
+            // TODO: Integrate FCM to send push notifications to each member
+            // This can be done via Cloud Functions triggers, listening for new documents in reminders collection
+            // Then send push notifications to each member's FCM token
 
             Result.success(Unit)
         } catch (e: Exception) {
@@ -206,8 +217,8 @@ class CheckInService {
     }
 
     /**
-     * 计算签到成功率
-     * 对应前端 FriendDetailPage 中的 "100% Success Rate" 展示
+     * Calculate check-in success rate
+     * Corresponds to "100% Success Rate" display on FriendDetailPage
      */
     suspend fun getCheckInSuccessRate(uid: String, days: Int = 30): Result<String> {
         return try {

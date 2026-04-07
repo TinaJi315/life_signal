@@ -15,7 +15,7 @@ class LoginViewModel : ViewModel() {
     val authState: StateFlow<AuthState> = _authState.asStateFlow()
 
     init {
-        // 如果已经登录，直接跳转
+        // If already logged in, navigate directly
         if (authRepository.currentUser != null) {
             _authState.value = AuthState.Success
         }

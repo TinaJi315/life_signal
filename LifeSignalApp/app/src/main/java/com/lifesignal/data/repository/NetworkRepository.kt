@@ -14,19 +14,19 @@ import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.tasks.await
 
 /**
- * 网络存储库
- * 处理好友关系和群组功能
- * 对应前端 NetworkPage、AddFriendPage、AddGroupPage、FriendDetailPage、GroupDetailPage
+ * Network Repository
+ * Handles friend relationships and group features
+ * Corresponds to frontend NetworkPage, AddFriendPage, AddGroupPage, FriendDetailPage, GroupDetailPage
  */
 class NetworkRepository {
 
     private val firestore: FirebaseFirestore = FirebaseFirestore.getInstance()
 
-    // ==================== 好友功能 ====================
+    // ==================== Friend Features ====================
 
     /**
-     * 获取用户的好友列表
-     * 对应前端 NetworkPage 中的 Friends 列表
+     * Get user's friend list
+     * Corresponds to Friends list on frontend NetworkPage
      */
     suspend fun getFriends(uid: String): Result<List<Friend>> {
         return try {
@@ -43,8 +43,8 @@ class NetworkRepository {
     }
 
     /**
-     * 根据 UID 获取完整用户信息
-     * 用于通过二维码扫出的 UID 添加好友
+     * Get full user info by UID
+     * Used for adding friends via scanned QR code UID
      */
     suspend fun getUserById(uid: String): User? {
         return try {
@@ -59,7 +59,7 @@ class NetworkRepository {
     }
 
     /**
-     * 实时监听好友列表变化
+     * Observe friend list changes in real-time
      */
     fun observeFriends(uid: String): Flow<List<Friend>> = callbackFlow {
         val listener: ListenerRegistration = firestore.collection(User.COLLECTION)
@@ -77,8 +77,8 @@ class NetworkRepository {
     }
 
     /**
-     * 实时监听单个好友文档
-     * 用于 FriendDetailScreen 和 FriendProfileScreen 展示真实数据
+     * Observe a single friend document in real-time
+     * Used for FriendDetailScreen and FriendProfileScreen to show real data
      */
     fun observeFriendById(uid: String, friendId: String): Flow<Friend?> = callbackFlow {
         val listener: ListenerRegistration = firestore.collection(User.COLLECTION)
@@ -96,8 +96,8 @@ class NetworkRepository {
     }
 
     /**
-     * 发送好友请求
-     * 对应前端 AddFriendPage 中的 "Add" 按钮
+     * Send friend request
+     * Corresponds to "Add" button on frontend AddFriendPage
      */
     suspend fun sendFriendRequest(
         fromUid: String,
@@ -125,24 +125,24 @@ class NetworkRepository {
     }
 
     /**
-     * 接受好友请求
-     * 双向添加好友关系
+     * Accept friend request
+     * Bidirectionally adds friend relationship
      */
     suspend fun acceptFriendRequest(request: FriendRequest): Result<Unit> {
         return try {
             val batch = firestore.batch()
 
-            // 更新请求状态为已接受
+            // Update request status to accepted
             val requestRef = firestore.collection(FriendRequest.COLLECTION).document(request.id)
             batch.update(requestRef, "status", "accepted")
 
-            // 获取双方用户资料
+            // Get profiles of both users
             val fromUser = firestore.collection(User.COLLECTION).document(request.fromUid).get().await()
-                .toObject(User::class.java) ?: throw Exception("发送方用户不存在")
+                .toObject(User::class.java) ?: throw Exception("Sender user not found")
             val toUser = firestore.collection(User.COLLECTION).document(request.toUid).get().await()
-                .toObject(User::class.java) ?: throw Exception("接收方用户不存在")
+                .toObject(User::class.java) ?: throw Exception("Receiver user not found")
 
-            // 在发送方的好友列表中添加接收方
+            // Add receiver to sender's friend list
             val friendForSender = Friend(
                 id = request.toUid,
                 name = toUser.name,
@@ -158,7 +158,7 @@ class NetworkRepository {
                 .document(request.toUid)
             batch.set(senderFriendRef, friendForSender)
 
-            // 在接收方的好友列表中添加发送方
+            // Add sender to receiver's friend list
             val friendForReceiver = Friend(
                 id = request.fromUid,
                 name = fromUser.name,
@@ -182,14 +182,14 @@ class NetworkRepository {
     }
 
     /**
-     * 删除好友
-     * 对应前端 FriendDetailPage 中的 "Remove" 按钮
+     * Delete friend
+     * Corresponds to "Remove" button on frontend FriendDetailPage
      */
     suspend fun removeFriend(uid: String, friendUid: String): Result<Unit> {
         return try {
             val batch = firestore.batch()
 
-            // 从双方的好友列表中删除
+            // Remove from both friend lists
             val myFriendRef = firestore.collection(User.COLLECTION)
                 .document(uid)
                 .collection(Friend.COLLECTION)
@@ -210,8 +210,8 @@ class NetworkRepository {
     }
 
     /**
-     * 通过搜索查找用户
-     * 对应前端 AddFriendPage 中的搜索栏
+     * Search for users
+     * Corresponds to search bar on frontend AddFriendPage
      */
     fun searchUsers(query: String): Flow<List<User>> = kotlinx.coroutines.flow.flow {
         if (query.isBlank()) {
@@ -221,7 +221,7 @@ class NetworkRepository {
         try {
             val users = mutableListOf<User>()
             
-            // 姓名按前缀搜索 (区分大小写原版逻辑，尽量保留)
+            // Name prefix search (case-sensitive, keeping original logic)
             val nameSnapshot = firestore.collection(User.COLLECTION)
                 .whereGreaterThanOrEqualTo("name", query)
                 .whereLessThanOrEqualTo("name", query + "\uf8ff")
@@ -230,7 +230,7 @@ class NetworkRepository {
                 .await()
             users.addAll(nameSnapshot.toObjects(User::class.java))
 
-            // 邮箱按前缀搜索 (转换为小写，解决大小写找不到的问题)
+            // Email prefix search (lowercase for case-insensitive matching)
             val queryLower = query.lowercase()
             if (queryLower.contains("@") || queryLower.isNotEmpty()) {
                 val emailSnapshot = firestore.collection(User.COLLECTION)
@@ -242,18 +242,18 @@ class NetworkRepository {
                 users.addAll(emailSnapshot.toObjects(User::class.java))
             }
             
-            // 去重并返回
+            // Deduplicate and return
             emit(users.distinctBy { it.uid })
         } catch (e: Exception) {
             emit(emptyList())
         }
     }
 
-    // ==================== 群组功能 ====================
+    // ==================== Group Features ====================
 
     /**
-     * 获取用户所在的群组列表
-     * 对应前端 NetworkPage 中的 Groups 列表
+     * Get groups user belongs to
+     * Corresponds to Groups list on frontend NetworkPage
      */
     suspend fun getGroups(uid: String): Result<List<Group>> {
         return try {
@@ -269,7 +269,7 @@ class NetworkRepository {
     }
 
     /**
-     * 实时监听群组列表变化
+     * Observe group list changes in real-time
      */
     fun observeGroups(uid: String): Flow<List<Group>> = callbackFlow {
         val listener: ListenerRegistration = firestore.collection(Group.COLLECTION)
@@ -286,8 +286,8 @@ class NetworkRepository {
     }
 
     /**
-     * 创建群组
-     * 对应前端 AddGroupPage 中的 "Create Group" 按钮
+     * Create group
+     * Corresponds to "Create Group" button on frontend AddGroupPage
      */
     suspend fun createGroup(
         name: String,
@@ -296,7 +296,7 @@ class NetworkRepository {
         avatarUrls: List<String> = emptyList()
     ): Result<String> {
         return try {
-            // 确保群主也在成员列表中
+            // Ensure owner is in the member list
             val allMembers = (memberIds + ownerUid).distinct()
             val group = Group(
                 name = name,
@@ -315,8 +315,8 @@ class NetworkRepository {
     }
 
     /**
-     * 向群组添加成员
-     * 对应前端 GroupDetailPage 中的 "Add Member" 按钮
+     * Add member to group
+     * Corresponds to "Add Member" button on frontend GroupDetailPage
      */
     suspend fun addGroupMember(groupId: String, memberUid: String): Result<Unit> {
         return try {
@@ -336,8 +336,8 @@ class NetworkRepository {
     }
 
     /**
-     * 获取群组成员状态列表
-     * 对应前端 GroupDetailPage 中的 "Member Status" 部分
+     * Get group member status list
+     * Corresponds to "Member Status" section on frontend GroupDetailPage
      */
     suspend fun getGroupMemberStatuses(group: Group): Result<List<GroupMemberStatus>> {
         return try {
@@ -364,7 +364,7 @@ class NetworkRepository {
     }
 
     /**
-     * 删除群组
+     * Delete group
      */
     suspend fun deleteGroup(groupId: String): Result<Unit> {
         return try {
@@ -379,7 +379,7 @@ class NetworkRepository {
     }
 
     /**
-     * 一键互加好友（免同意全自动直接写入，专门用于原型核心演示）
+     * Instant mutual friend add (auto-approved, used for prototype demo)
      */
     suspend fun instantAddFriend(myUid: String, friendUser: User): Result<Unit> {
         return try {
@@ -387,7 +387,7 @@ class NetworkRepository {
             val myUser = firestore.collection(User.COLLECTION).document(myUid).get().await()
                 .toObject(User::class.java) ?: throw Exception("Current user not found")
 
-            // Me -> Them (写入我的通讯录)
+            // Me -> Them (write to my contacts)
             val friendForMe = Friend(
                 id = friendUser.uid,
                 name = friendUser.name,
@@ -399,7 +399,7 @@ class NetworkRepository {
             )
             batch.set(firestore.collection(User.COLLECTION).document(myUid).collection(Friend.COLLECTION).document(friendUser.uid), friendForMe)
 
-            // Them -> Me (写入对方通讯录)
+            // Them -> Me (write to their contacts)
             val friendForThem = Friend(
                 id = myUid,
                 name = myUser.name,
@@ -419,7 +419,7 @@ class NetworkRepository {
     }
 
     /**
-     * 发送签到提醒
+     * Send check-in reminder
      */
     suspend fun sendReminder(fromUid: String, fromName: String, toUid: String) {
         val reminder = hashMapOf(
@@ -437,7 +437,7 @@ class NetworkRepository {
     }
 
     /**
-     * 拉黑用户
+     * Block user
      */
     suspend fun blockUser(uid: String, blockUid: String) {
         removeFriend(uid, blockUid)
@@ -450,7 +450,7 @@ class NetworkRepository {
     }
 
     /**
-     * 举报用户
+     * Report user
      */
     suspend fun reportUser(uid: String, reportUid: String, reason: String) {
         val report = hashMapOf(
@@ -466,7 +466,7 @@ class NetworkRepository {
     }
 
     /**
-     * 注入模拟用户数据
+     * Seed mock user data
      */
     suspend fun seedMockUsers() {
         val mockUsers = listOf(

@@ -16,7 +16,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
 import androidx.core.view.WindowCompat
 
-// 我们主要复原网页上的浅色主题系统
+// We primarily replicate the light theme system from the web page
 private val LightColorScheme = lightColorScheme(
     primary = Primary,
     onPrimary = OnPrimary,
@@ -49,13 +49,43 @@ private val LightColorScheme = lightColorScheme(
     onErrorContainer = OnErrorContainer
 )
 
-// 暂时使用浅色主题作为护盾，保证1:1还原，后续可细化深色主题
-private val DarkColorScheme = LightColorScheme
+// Dark theme mapping
+private val DarkColorScheme = darkColorScheme(
+    primary = Primary,
+    onPrimary = OnPrimary,
+    primaryContainer = Primary.copy(alpha = 0.5f),
+    onPrimaryContainer = Color.White,
+    
+    secondary = Secondary,
+    onSecondary = OnSecondary,
+    secondaryContainer = Secondary.copy(alpha = 0.5f),
+    onSecondaryContainer = Color.White,
+    
+    tertiary = Tertiary,
+    onTertiary = OnTertiary,
+    tertiaryContainer = Tertiary.copy(alpha = 0.5f),
+    onTertiaryContainer = Color.White,
+    
+    background = Color(0xFF121212),
+    onBackground = Color(0xFFE0E0E0),
+    surface = Color(0xFF1E1E1E),
+    onSurface = Color(0xFFE0E0E0),
+    surfaceVariant = Color(0xFF2C2C2C),
+    onSurfaceVariant = Color(0xFFBDBDBD),
+    
+    outline = Color(0xFF757575),
+    outlineVariant = Color(0xFF424242),
+    
+    error = Error,
+    onError = OnError,
+    errorContainer = ErrorContainer,
+    onErrorContainer = OnErrorContainer
+)
 
 @Composable
 fun LifeSignalTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
-    dynamicColor: Boolean = false, // 禁用动态主题，保证严格按照我们前端的色卡显示
+    dynamicColor: Boolean = false, // Disable dynamic theming to strictly follow our frontend color palette
     content: @Composable () -> Unit
 ) {
     val colorScheme = when {
@@ -71,7 +101,7 @@ fun LifeSignalTheme(
     if (!view.isInEditMode) {
         SideEffect {
             val window = (view.context as Activity).window
-            window.statusBarColor = Surface.toArgb() // 状态栏颜色设为背景色
+            window.statusBarColor = Surface.toArgb() // Set status bar color to background
             WindowCompat.getInsetsController(window, view).isAppearanceLightStatusBars = !darkTheme
         }
     }

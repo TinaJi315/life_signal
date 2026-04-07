@@ -25,12 +25,12 @@ import com.lifesignal.ui.screens.home.CheckInHistoryScreen
 fun LifeSignalAppNavHost() {
     val navController = rememberNavController()
 
-    // 完整的 App 路由，起点是 LoginScreen
+    // Complete app routing, starting with LoginScreen
     NavHost(
         navController = navController,
         startDestination = Screen.Login.route
     ) {
-        // 1. 登录与注册
+        // 1. Login and Registration
         composable(Screen.Login.route) {
             LoginScreen(
                 onLoginSuccess = {
@@ -41,9 +41,9 @@ fun LifeSignalAppNavHost() {
             )
         }
 
-        // 2. 主页面骨架 (包含底部导航的 Home, Network, Profile)
+        // 2. Main screen skeleton (contains bottom navigation: Home, Network, Profile)
         composable(Screen.Home.route) {
-            // MainScreen 内含自己的底部 NavBar 切换逻辑
+            // MainScreen contains its own bottom NavBar switching logic
             MainScreen(
                 onSignOut = {
                     navController.navigate(Screen.Login.route) {
@@ -59,8 +59,8 @@ fun LifeSignalAppNavHost() {
                 onFriendClick = { friendId, friendName, isSafe, time ->
                     navController.navigate("friend_detail/$friendId/$friendName/$isSafe/$time")
                 },
-                onGroupClick = {
-                    navController.navigate("group_detail")
+                onGroupClick = { groupId ->
+                    navController.navigate("group_detail/$groupId")
                 },
                 onAddGroupClick = {
                     navController.navigate("new_group")
@@ -83,7 +83,7 @@ fun LifeSignalAppNavHost() {
             )
         }
         
-        // 3. 全屏子页面
+        // 3. Full-screen sub-pages
         composable(Screen.AddFriend.route) {
             AddFriendScreen(onBack = { navController.popBackStack() })
         }
@@ -117,8 +117,13 @@ fun LifeSignalAppNavHost() {
         composable("new_group") {
             NewGroupScreen(onBack = { navController.popBackStack() })
         }
-        composable("group_detail") {
+        composable(
+            route = "group_detail/{groupId}",
+            arguments = listOf(androidx.navigation.navArgument("groupId") { type = androidx.navigation.NavType.StringType })
+        ) { backStackEntry ->
+            val groupId = backStackEntry.arguments?.getString("groupId") ?: ""
             GroupDetailScreen(
+                groupId = groupId,
                 onBack = { navController.popBackStack() },
                 onRemindAll = { navController.navigate("reminder_sent") },
                 onAddMember = { navController.navigate("add_member") }

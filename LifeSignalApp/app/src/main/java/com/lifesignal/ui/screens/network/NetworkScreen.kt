@@ -35,7 +35,7 @@ fun NetworkScreen(
     onAddFriendClick: () -> Unit,
     onShareProfileClick: () -> Unit,
     onFriendClick: (friendId: String, name: String, isSafe: Boolean, time: String) -> Unit,
-    onGroupClick: () -> Unit,
+    onGroupClick: (String) -> Unit,
     onAddGroupClick: () -> Unit,
     viewModel: NetworkViewModel = viewModel()
 ) {
@@ -150,7 +150,7 @@ fun NetworkScreen(
                 items(groups) { group ->
                     GroupCard(
                         group = group, 
-                        onGroupClick = onGroupClick, 
+                        onGroupClick = { onGroupClick(group.id) }, 
                         onRemindAll = { viewModel.remindAllGroupCheckIn(group) }
                     )
                     Spacer(modifier = Modifier.height(16.dp))

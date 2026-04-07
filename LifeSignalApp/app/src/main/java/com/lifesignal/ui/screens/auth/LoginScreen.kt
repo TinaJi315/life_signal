@@ -37,7 +37,7 @@ fun LoginScreen(
     val authState by viewModel.authState.collectAsState()
     val scope = rememberCoroutineScope()
 
-    // 监听登录成功状态
+    // Listen for login success state
     LaunchedEffect(authState) {
         if (authState is LoginViewModel.AuthState.Success) {
             onLoginSuccess()
@@ -115,7 +115,7 @@ fun LoginScreen(
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            // 错误提示
+            // Error message
             if (authState is LoginViewModel.AuthState.Error) {
                 Text(
                     text = (authState as LoginViewModel.AuthState.Error).message,
@@ -153,7 +153,7 @@ fun LoginScreen(
             }
         }
 
-        // 简易注册弹窗
+        // Simple registration dialog
         if (isRegisterDialogVisible) {
             AlertDialog(
                 onDismissRequest = { isRegisterDialogVisible = false },

@@ -55,4 +55,8 @@ class CheckInSettingsViewModel : ViewModel() {
     fun setGracePeriodMinutes(minutes: Int) {
         updateAndSave(_settings.value.copy(gracePeriodMinutes = minutes))
     }
+
+    fun setCheckInTime(hour: Int, minute: Int) {
+        updateAndSave(_settings.value.copy(checkInHour = hour, checkInMinute = minute))
+    }
 }

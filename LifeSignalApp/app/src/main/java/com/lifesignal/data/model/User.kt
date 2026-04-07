@@ -5,10 +5,10 @@ import com.google.firebase.firestore.ServerTimestamp
 import java.util.Date
 
 /**
- * 用户数据模型
- * 对应前端 App.tsx 中的用户个人资料和 ProfilePage / HomePage 组件
+ * User data model
+ * Corresponds to user profile in frontend App.tsx and ProfilePage / HomePage components
  *
- * Firestore 集合: users/{uid}
+ * Firestore collection: users/{uid}
  */
 data class User(
     @DocumentId
@@ -23,7 +23,7 @@ data class User(
     val lastCheckInTime: Date? = null,
     val nextCheckInTime: Date? = null,
     val memberSince: Date? = null,
-    val shareUrl: String = "",            // 用于 QR 二维码分享
+    val shareUrl: String = "",            // For QR code sharing
     @ServerTimestamp
     val createdAt: Date? = null,
     @ServerTimestamp

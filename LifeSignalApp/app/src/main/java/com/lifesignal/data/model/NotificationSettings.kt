@@ -3,10 +3,10 @@ package com.lifesignal.data.model
 import com.google.firebase.firestore.DocumentId
 
 /**
- * 通知设置数据模型
- * 对应前端 App.tsx 中 NotificationSettingsPage 的设置项
+ * Notification settings data model
+ * Corresponds to settings items on frontend NotificationSettingsPage
  *
- * Firestore 集合: users/{uid}/settings/notifications
+ * Firestore collection: users/{uid}/settings/notifications
  */
 data class NotificationSettings(
     @DocumentId

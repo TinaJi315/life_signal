@@ -12,18 +12,18 @@ import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.tasks.await
 
 /**
- * 用户存储库
- * 处理用户个人资料、紧急联系人和通知设置的 CRUD 操作
- * 对应前端 ProfilePage、NotificationSettingsPage、AddContactPage
+ * User Repository
+ * Handles CRUD operations for user profiles, emergency contacts, and notification settings
+ * Corresponds to frontend ProfilePage, NotificationSettingsPage, AddContactPage
  */
 class UserRepository {
 
     private val firestore: FirebaseFirestore = FirebaseFirestore.getInstance()
 
-    // ==================== 用户资料 ====================
+    // ==================== User Profile ====================
 
     /**
-     * 获取用户资料
+     * Get user profile
      */
     suspend fun getUser(uid: String): Result<User> {
         return try {
@@ -31,7 +31,7 @@ class UserRepository {
                 .document(uid)
                 .get()
                 .await()
-            val user = doc.toObject(User::class.java) ?: throw Exception("用户不存在")
+            val user = doc.toObject(User::class.java) ?: throw Exception("User not found")
             Result.success(user)
         } catch (e: Exception) {
             Result.failure(e)
@@ -39,8 +39,8 @@ class UserRepository {
     }
 
     /**
-     * 实时监听用户资料变化
-     * 对应前端 HomePage 中实时显示签到状态
+     * Observe user profile changes in real-time
+     * Corresponds to real-time check-in status display on frontend HomePage
      */
     fun observeUser(uid: String): Flow<User?> = callbackFlow {
         val listener: ListenerRegistration = firestore.collection(User.COLLECTION)
@@ -57,8 +57,8 @@ class UserRepository {
     }
 
     /**
-     * 更新用户资料
-     * 对应前端 ProfilePage 中上传头像等操作
+     * Update user profile
+     * Corresponds to avatar upload on frontend ProfilePage
      */
     suspend fun updateUser(uid: String, updates: Map<String, Any>): Result<Unit> {
         return try {
@@ -73,18 +73,18 @@ class UserRepository {
     }
 
     /**
-     * 更新用户头像 URL
-     * 对应前端 ProfilePage 中点击 Edit 按钮上传照片
+     * Update user avatar URL
+     * Corresponds to Edit button photo upload on frontend ProfilePage
      */
     suspend fun updateProfileImage(uid: String, imageUrl: String): Result<Unit> {
         return updateUser(uid, mapOf("profileImageUrl" to imageUrl))
     }
 
-    // ==================== 紧急联系人 ====================
+    // ==================== Emergency Contacts ====================
 
     /**
-     * 获取用户的所有紧急联系人
-     * 对应前端 ProfilePage 中的 Emergency Contacts 列表
+     * Get all emergency contacts for user
+     * Corresponds to Emergency Contacts list on frontend ProfilePage
      */
     suspend fun getContacts(uid: String): Result<List<Contact>> {
         return try {
@@ -101,7 +101,7 @@ class UserRepository {
     }
 
     /**
-     * 一次性获取所有紧急联系人（供 Worker 后台硬拉取）
+     * One-time fetch of all emergency contacts (for Worker background hard pull)
      */
     suspend fun getContactsOnce(uid: String): Result<List<Contact>> {
         return try {
@@ -118,7 +118,7 @@ class UserRepository {
     }
 
     /**
-     * 实时监听紧急联系人列表变化
+     * Observe emergency contacts list changes in real-time
      */
     fun observeContacts(uid: String): Flow<List<Contact>> = callbackFlow {
         val listener = firestore.collection(User.COLLECTION)
@@ -136,8 +136,8 @@ class UserRepository {
     }
 
     /**
-     * 添加紧急联系人
-     * 对应前端 AddContactPage 中的 "Save Contact" 按钮
+     * Add emergency contact
+     * Corresponds to "Save Contact" button on frontend AddContactPage
      */
     suspend fun addContact(uid: String, contact: Contact): Result<String> {
         return try {
@@ -153,7 +153,7 @@ class UserRepository {
     }
 
     /**
-     * 删除紧急联系人
+     * Delete emergency contact
      */
     suspend fun deleteContact(uid: String, contactId: String): Result<Unit> {
         return try {
@@ -169,11 +169,11 @@ class UserRepository {
         }
     }
 
-    // ==================== 通知设置 ====================
+    // ==================== Notification Settings ====================
 
     /**
-     * 获取通知设置
-     * 对应前端 NotificationSettingsPage 的初始状态
+     * Get notification settings
+     * Corresponds to initial state of frontend NotificationSettingsPage
      */
     suspend fun getNotificationSettings(uid: String): Result<NotificationSettings> {
         return try {
@@ -192,8 +192,8 @@ class UserRepository {
     }
 
     /**
-     * 更新通知设置
-     * 对应前端 NotificationSettingsPage 中的 toggle 开关
+     * Update notification settings
+     * Corresponds to toggle switches on frontend NotificationSettingsPage
      */
     suspend fun updateNotificationSettings(
         uid: String,
@@ -212,10 +212,10 @@ class UserRepository {
         }
     }
 
-    // ==================== 签到设置 ====================
+    // ==================== Check-in Settings ====================
 
     /**
-     * 获取签到设置
+     * Get check-in settings
      */
     suspend fun getCheckInSettings(uid: String): Result<com.lifesignal.data.model.CheckInSettings> {
         return try {
@@ -234,7 +234,7 @@ class UserRepository {
     }
 
     /**
-     * 更新签到设置
+     * Update check-in settings
      */
     suspend fun updateCheckInSettings(
         uid: String,

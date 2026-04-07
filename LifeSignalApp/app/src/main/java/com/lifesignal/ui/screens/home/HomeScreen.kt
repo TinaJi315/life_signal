@@ -52,7 +52,7 @@ fun HomeScreen(
     val remainingTime by viewModel.remainingTimeText.collectAsState()
     val userStatus by viewModel.userStatus.collectAsState()
 
-    // 构建权限列表（包含 POST_NOTIFICATIONS）
+    // Build permission list (including POST_NOTIFICATIONS)
     val permissions = remember {
         buildList {
             add(Manifest.permission.ACCESS_FINE_LOCATION)
@@ -121,7 +121,7 @@ fun NotCheckedInView(
     userStatus: String,
     onCheckInClick: () -> Unit
 ) {
-    // 根据状态动态计算颜色
+    // Dynamically compute colors based on status
     val buttonColor by animateColorAsState(
         targetValue = when (userStatus) {
             "warning" -> Warning
@@ -172,14 +172,14 @@ fun NotCheckedInView(
                 .align(Alignment.Start)
         )
 
-        // 状态横幅
+        // Status banner
         AnimatedVisibility(visible = userStatus == "warning" || userStatus == "emergency") {
             StatusBanner(userStatus = userStatus)
         }
 
         Spacer(modifier = Modifier.height(if (userStatus != "safe") 24.dp else 48.dp))
 
-        // Big Safe Button — 颜色随状态变化
+        // Big Safe Button — color changes with status
         Box(contentAlignment = Alignment.Center, modifier = Modifier.size(300.dp)) {
             Box(
                 modifier = Modifier
@@ -266,7 +266,7 @@ fun NotCheckedInView(
 }
 
 /**
- * 状态横幅 — 警告 / 紧急
+ * Status banner — Warning / Emergency
  */
 @Composable
 fun StatusBanner(userStatus: String) {
@@ -286,8 +286,8 @@ fun StatusBanner(userStatus: String) {
         else -> ""
     }
     val message = when (userStatus) {
-        "warning" -> "您已错过签到时间。请立即签到以取消紧急倒计时。"
-        "emergency" -> "紧急联系人已收到警报通知。请签到以解除紧急状态。"
+        "warning" -> "You missed your check-in. Please check in immediately to cancel."
+        "emergency" -> "Emergency contacts alerted. Please check in to resolve."
         else -> ""
     }
 

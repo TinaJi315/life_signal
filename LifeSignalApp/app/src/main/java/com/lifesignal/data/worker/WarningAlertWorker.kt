@@ -18,11 +18,11 @@ import com.lifesignal.data.repository.AuthRepository
 import java.util.Date
 
 /**
- * 24 小时警告 Worker
+ * 24-hour Warning Worker
  *
- * 当用户超过 24 小时未签到时触发：
- * 1. 将 Firestore 中的 user.status 更新为 "warning"
- * 2. 发送本地推送通知，提醒用户尽快签到
+ * Triggered when user misses check-in (e.g. over 24 hours):
+ * 1. Updates user.status to "warning" in Firestore
+ * 2. Sends a local push notification reminding user to check in
  */
 class WarningAlertWorker(
     private val appContext: Context,
@@ -31,7 +31,7 @@ class WarningAlertWorker(
 
     companion object {
         const val CHANNEL_ID = "lifesignal_warnings"
-        const val CHANNEL_NAME = "签到逾期提醒"
+        const val CHANNEL_NAME = "Check-in Overdue Reminder"
         const val NOTIFICATION_ID = 1001
     }
 
@@ -40,7 +40,7 @@ class WarningAlertWorker(
             val authRepo = AuthRepository()
             val uid = authRepo.currentUid ?: return Result.success()
 
-            // 1. 更新 Firestore 状态为 "warning"
+            // 1. Update Firestore status to "warning"
             val firestore = FirebaseFirestore.getInstance()
             val updates = mapOf(
                 "status" to "warning",
@@ -53,13 +53,13 @@ class WarningAlertWorker(
                     Log.e("WarningAlertWorker", "Failed to update status", e)
                 }
 
-            // 2. 发送本地推送通知
+            // 2. Send local push notification
             sendWarningNotification()
 
-            Log.d("WarningAlertWorker", "Warning state activated for uid=$uid")
+            Log.d("WarningAlertWorker", "Warning status activated for uid=$uid")
             Result.success()
         } catch (e: Exception) {
-            Log.e("WarningAlertWorker", "Failed to execute warning alert", e)
+            Log.e("WarningAlertWorker", "Warning logic execution failed", e)
             Result.failure()
         }
     }
@@ -68,19 +68,19 @@ class WarningAlertWorker(
         val notificationManager =
             appContext.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
 
-        // 创建通知渠道 (Android 8.0+)
+        // Create notification channel (Android 8.0+)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             val channel = NotificationChannel(
                 CHANNEL_ID,
                 CHANNEL_NAME,
                 NotificationManager.IMPORTANCE_HIGH
             ).apply {
-                description = "签到超时警告提醒"
+                description = "Check-in overdue warning reminder"
             }
             notificationManager.createNotificationChannel(channel)
         }
 
-        // 点击通知打开 App
+        // Open app on notification tap
         val launchIntent = appContext.packageManager.getLaunchIntentForPackage(appContext.packageName)
         val pendingIntent = PendingIntent.getActivity(
             appContext, 0, launchIntent,
@@ -89,11 +89,11 @@ class WarningAlertWorker(
 
         val notification = NotificationCompat.Builder(appContext, CHANNEL_ID)
             .setSmallIcon(R.mipmap.ic_launcher)
-            .setContentTitle("LifeSignal — 签到已逾期")
-            .setContentText("您已超过 24 小时未签到。请立即打开应用签到，否则紧急联系人将收到警报。")
+            .setContentTitle("LifeSignal — Check-in Overdue")
+            .setContentText("You missed your check-in. Please open the app and check in immediately, or your emergency contacts will be notified.")
             .setStyle(
                 NotificationCompat.BigTextStyle()
-                    .bigText("您已超过 24 小时未签到。请立即打开应用签到，否则紧急联系人将在倒计时结束后收到自动警报短信。")
+                    .bigText("You missed your check-in. Please open the app and check in immediately. If the countdown ends without a check-in, the system will automatically send an emergency SMS to your emergency contacts.")
             )
             .setPriority(NotificationCompat.PRIORITY_HIGH)
             .setContentIntent(pendingIntent)

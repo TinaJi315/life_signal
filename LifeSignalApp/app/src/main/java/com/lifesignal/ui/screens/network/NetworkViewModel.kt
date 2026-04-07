@@ -67,7 +67,7 @@ class NetworkViewModel(application: Application) : AndroidViewModel(application)
         }
     }
 
-    /** 通过扫码获得的 ID 直接添加好友 */
+    /** Add friend by scanned QR code ID */
     fun addFriendById(friendId: String, onComplete: (Boolean) -> Unit) {
         val uid = authRepository.currentUid ?: return
         viewModelScope.launch {
@@ -85,17 +85,17 @@ class NetworkViewModel(application: Application) : AndroidViewModel(application)
         }
     }
 
-    /** 发送提醒 */
+    /** Send reminder */
     fun sendReminder(friendId: String, onComplete: () -> Unit = {}) {
         val uid = authRepository.currentUid ?: return
         viewModelScope.launch {
-            // 这里为了简单，假设给自己发的名字是 "User"
+            // For simplicity, assume the sender name is "User"
             networkRepository.sendReminder(uid, "Your Friend", friendId)
             onComplete()
         }
     }
 
-    /** 拉黑用户 */
+    /** Block user */
     fun blockUser(friendId: String, onComplete: () -> Unit = {}) {
         val uid = authRepository.currentUid ?: return
         viewModelScope.launch {
@@ -104,7 +104,7 @@ class NetworkViewModel(application: Application) : AndroidViewModel(application)
         }
     }
 
-    /** 举报用户 */
+    /** Report user */
     fun reportUser(friendId: String, reason: String, onComplete: () -> Unit = {}) {
         val uid = authRepository.currentUid ?: return
         viewModelScope.launch {
@@ -113,7 +113,7 @@ class NetworkViewModel(application: Application) : AndroidViewModel(application)
         }
     }
 
-    /** 删除好友，双向移除 Firestore 关系 */
+    /** Remove friend, bidirectionally remove Firestore relationship */
     fun removeFriend(friendId: String, onComplete: () -> Unit = {}) {
         val uid = authRepository.currentUid ?: return
         viewModelScope.launch {
@@ -122,13 +122,13 @@ class NetworkViewModel(application: Application) : AndroidViewModel(application)
         }
     }
 
-    /** 实时监听单个好友文档 */
+    /** Observe single friend document in real-time */
     fun getFriendById(friendId: String): Flow<Friend?> {
         val uid = authRepository.currentUid ?: return flow { emit(null) }
         return networkRepository.observeFriendById(uid, friendId)
     }
 
-    /** 注入测试数据 (可以在 init 中调用一次) */
+    /** Seed test data (can call once in init) */
     fun seedTestData() {
         viewModelScope.launch {
             networkRepository.seedMockUsers()

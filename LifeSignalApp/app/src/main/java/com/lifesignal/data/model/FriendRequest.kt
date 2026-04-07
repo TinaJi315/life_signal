@@ -5,10 +5,10 @@ import com.google.firebase.firestore.ServerTimestamp
 import java.util.Date
 
 /**
- * 好友请求数据模型
- * 对应前端 App.tsx 中 AddFriendPage 的 "Add" 和 "Suggested" 功能
+ * Friend request data model
+ * Corresponds to "Add" and "Suggested" features on frontend AddFriendPage
  *
- * Firestore 集合: friend_requests/{requestId}
+ * Firestore collection: friend_requests/{requestId}
  */
 data class FriendRequest(
     @DocumentId
@@ -18,7 +18,7 @@ data class FriendRequest(
     val fromName: String = "",
     val toName: String = "",
     val status: String = "pending",    // "pending" | "accepted" | "rejected"
-    val relation: String = "",          // 例如 "Cousin", "Neighbor"
+    val relation: String = "",          // e.g. "Cousin", "Neighbor"
     @ServerTimestamp
     val createdAt: Date? = null
 ) {

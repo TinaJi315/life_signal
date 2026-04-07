@@ -1,6 +1,8 @@
 package com.lifesignal.ui.screens.profile
 
+import android.content.Intent
 import android.net.Uri
+import android.net.Uri as AndroidUri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
@@ -12,15 +14,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Call
-import androidx.compose.material.icons.filled.ChevronRight
-import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material.icons.filled.Message
-import androidx.compose.material.icons.filled.Place
-import androidx.compose.material.icons.filled.Settings
-import androidx.compose.material.icons.filled.Share
-import androidx.compose.material.icons.filled.SupervisorAccount
+import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -37,17 +31,11 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
 import com.google.android.gms.maps.model.CameraPosition
 import com.google.android.gms.maps.model.LatLng
-import com.google.maps.android.compose.GoogleMap
-import com.google.maps.android.compose.MapProperties
-import com.google.maps.android.compose.MapUiSettings
-import com.google.maps.android.compose.Marker
-import com.google.maps.android.compose.MarkerState
-import com.google.maps.android.compose.rememberCameraPositionState
+import com.google.maps.android.compose.*
+import com.lifesignal.data.model.Contact
 import com.lifesignal.data.repository.AuthRepository
 import com.lifesignal.data.repository.UserRepository
-import com.lifesignal.data.model.Contact
-import android.content.Intent
-import android.net.Uri as AndroidUri
+import com.lifesignal.ui.theme.ThemeManager
 
 @Composable
 fun ProfileScreen(
@@ -64,17 +52,18 @@ fun ProfileScreen(
     val context = LocalContext.current
     val currentUid = authRepo.currentUid
 
-    // 实时用户资料
+    // Real-time user profile
     val user by profileViewModel.user.collectAsStateWithLifecycle()
     val isUploadingAvatar by profileViewModel.isUploadingAvatar.collectAsStateWithLifecycle()
+    val currentThemeMode by ThemeManager.themeMode.collectAsState()
 
-    // 实时联系人
+    // Real-time contacts
     val contactsFlow = remember(currentUid) {
         if (currentUid != null) userRepo.observeContacts(currentUid) else kotlinx.coroutines.flow.flowOf(emptyList())
     }
     val contacts by contactsFlow.collectAsStateWithLifecycle(initialValue = emptyList())
 
-    // 相册选图启动器
+    // Photo picker launcher
     val photoPickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.PickVisualMedia()
     ) { uri: Uri? ->
@@ -82,6 +71,7 @@ fun ProfileScreen(
     }
 
     var showEditProfileDialog by remember { mutableStateOf(false) }
+    var showThemeDialog by remember { mutableStateOf(false) }
     var editName by remember(user?.name) { mutableStateOf(user?.name ?: "") }
     var editPhone by remember(user?.phone) { mutableStateOf(user?.phone ?: "") }
 
@@ -124,7 +114,7 @@ fun ProfileScreen(
         ) {
             item {
                 Spacer(modifier = Modifier.height(32.dp))
-                // 头像区域
+                // Avatar area
                 Box(modifier = Modifier.size(120.dp)) {
                     Box(
                         modifier = Modifier
@@ -138,7 +128,7 @@ fun ProfileScreen(
                         if (!avatarUrl.isNullOrBlank()) {
                             AsyncImage(
                                 model = avatarUrl,
-                                contentDescription = "头像",
+                                contentDescription = "Avatar",
                                 contentScale = ContentScale.Crop,
                                 modifier = Modifier.fillMaxSize().clip(CircleShape)
                             )
@@ -151,7 +141,7 @@ fun ProfileScreen(
                             )
                         }
                     }
-                    // 编辑图标徽章
+                    // Edit icon badge
                     Box(
                         modifier = Modifier
                             .align(Alignment.BottomEnd)
@@ -173,13 +163,13 @@ fun ProfileScreen(
                                 strokeWidth = 2.dp
                             )
                         } else {
-                            Icon(Icons.Default.Edit, contentDescription = "编辑头像", tint = Color.White, modifier = Modifier.size(16.dp))
+                            Icon(Icons.Default.Edit, contentDescription = "Edit avatar", tint = Color.White, modifier = Modifier.size(16.dp))
                         }
                     }
                 }
 
                 Spacer(modifier = Modifier.height(24.dp))
-                // 真实用户名
+                // Real username
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(
                         text = user?.name?.ifBlank { "Loading..." } ?: "Loading...",
@@ -190,14 +180,14 @@ fun ProfileScreen(
                     Spacer(modifier = Modifier.width(8.dp))
                     Icon(
                         Icons.Default.Edit, 
-                        contentDescription = "Edit Profile", 
+                        contentDescription = "Edit profile", 
                         tint = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.size(24.dp).clickable { showEditProfileDialog = true }
                     )
                 }
 
                 Spacer(modifier = Modifier.height(16.dp))
-                // 分享资料按钮
+                // Share profile button
                 Button(
                     onClick = onShareProfileClick,
                     shape = RoundedCornerShape(12.dp),
@@ -213,7 +203,7 @@ fun ProfileScreen(
             }
 
             item {
-                // 紧急联系人区块
+                // Emergency contacts section
                 Card(
                     shape = RoundedCornerShape(24.dp),
                     colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
@@ -265,7 +255,7 @@ fun ProfileScreen(
             }
 
             item {
-                // 账户设置区块
+                // Account settings section
                 Card(
                     shape = RoundedCornerShape(24.dp),
                     colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
@@ -284,7 +274,17 @@ fun ProfileScreen(
                         Divider(color = MaterialTheme.colorScheme.surfaceVariant, modifier = Modifier.padding(vertical = 12.dp))
                         SettingRow(title = "Notification Preferences", onClick = onNotificationPreferencesClick)
                         Divider(color = MaterialTheme.colorScheme.surfaceVariant, modifier = Modifier.padding(vertical = 12.dp))
-                        SettingRow(title = "Check-In Settings", onClick = onCheckInSettingsClick)
+                        SettingRow(title = "Check-in Settings", onClick = onCheckInSettingsClick)
+                        Divider(color = MaterialTheme.colorScheme.surfaceVariant, modifier = Modifier.padding(vertical = 12.dp))
+                        SettingRow(
+                            title = "Appearance",
+                            subtitle = when(currentThemeMode) {
+                                1 -> "Light Mode"
+                                2 -> "Dark Mode"
+                                else -> "System Default"
+                            },
+                            onClick = { showThemeDialog = true }
+                        )
 
                         Divider(color = MaterialTheme.colorScheme.surfaceVariant, modifier = Modifier.padding(vertical = 12.dp))
 
@@ -337,7 +337,7 @@ fun ProfileScreen(
                         Marker(
                             state = MarkerState(position = startLocation),
                             title = "Me",
-                            snippet = "Current Safe Location"
+                            snippet = "Current safe location"
                         )
                     }
                 }
@@ -382,6 +382,44 @@ fun ProfileScreen(
                 TextButton(onClick = { showEditProfileDialog = false }) { Text("Cancel") }
             }
         )
+    }
+
+    if (showThemeDialog) {
+        AlertDialog(
+            onDismissRequest = { showThemeDialog = false },
+            title = { Text("Select Theme", fontWeight = FontWeight.Black) },
+            text = {
+                Column {
+                    ThemeOptionRow(title = "System Default", selected = currentThemeMode == 0) {
+                        ThemeManager.setTheme(0)
+                        showThemeDialog = false
+                    }
+                    ThemeOptionRow(title = "Light Mode", selected = currentThemeMode == 1) {
+                        ThemeManager.setTheme(1)
+                        showThemeDialog = false
+                    }
+                    ThemeOptionRow(title = "Dark Mode", selected = currentThemeMode == 2) {
+                        ThemeManager.setTheme(2)
+                        showThemeDialog = false
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = { showThemeDialog = false }) { Text("Close") }
+            }
+        )
+    }
+}
+
+@Composable
+fun ThemeOptionRow(title: String, selected: Boolean, onClick: () -> Unit) {
+    Row(
+        modifier = Modifier.fillMaxWidth().clickable { onClick() }.padding(vertical = 12.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        RadioButton(selected = selected, onClick = onClick)
+        Spacer(modifier = Modifier.width(8.dp))
+        Text(title)
     }
 }
 
@@ -448,7 +486,7 @@ fun EmergencyContactItem(initials: String, name: String, relation: String, color
 }
 
 @Composable
-fun SettingRow(title: String, onClick: () -> Unit) {
+fun SettingRow(title: String, subtitle: String? = null, onClick: () -> Unit) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -457,7 +495,12 @@ fun SettingRow(title: String, onClick: () -> Unit) {
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Text(title, fontSize = 16.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
+        Column {
+            Text(title, fontSize = 16.sp, fontWeight = FontWeight.Bold)
+            if (subtitle != null) {
+                Text(subtitle, fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+        }
         Icon(Icons.Default.ChevronRight, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
     }
 }

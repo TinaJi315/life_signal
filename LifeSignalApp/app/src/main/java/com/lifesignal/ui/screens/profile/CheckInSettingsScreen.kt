@@ -28,7 +28,7 @@ fun CheckInSettingsScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Check-In Settings", fontWeight = FontWeight.Black, fontSize = 22.sp) },
+                title = { Text("Check-in Settings", fontWeight = FontWeight.Black, fontSize = 22.sp) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(Icons.Default.ArrowBack, contentDescription = "Back")
@@ -56,15 +56,66 @@ fun CheckInSettingsScreen(
                 Spacer(modifier = Modifier.height(8.dp))
 
                 Text(
-                    "Configure the grace period before an emergency alert is triggered if you miss your daily check-in.",
+                    "Configure your daily check-in deadline and the grace period before an emergency alert is triggered.",
                     fontSize = 14.sp,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(vertical = 24.dp)
                 )
 
+                // Time Picker setup
+                var showTimePicker by remember { mutableStateOf(false) }
+                val timePickerState = rememberTimePickerState(
+                    initialHour = settings.checkInHour,
+                    initialMinute = settings.checkInMinute,
+                    is24Hour = false
+                )
+
+                if (showTimePicker) {
+                    AlertDialog(
+                        onDismissRequest = { showTimePicker = false },
+                        confirmButton = {
+                            TextButton(onClick = {
+                                viewModel.setCheckInTime(timePickerState.hour, timePickerState.minute)
+                                showTimePicker = false
+                            }) { Text("OK") }
+                        },
+                        dismissButton = {
+                            TextButton(onClick = { showTimePicker = false }) { Text("Cancel") }
+                        },
+                        text = {
+                            TimePicker(state = timePickerState)
+                        }
+                    )
+                }
+
+                Text("Daily Check-in Deadline", fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                Text(
+                    "You must complete your check-in before this time each day.",
+                    fontSize = 12.sp,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(bottom = 8.dp)
+                )
+
+                Card(
+                    shape = RoundedCornerShape(20.dp),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                    modifier = Modifier.fillMaxWidth().clickable { showTimePicker = true }
+                ) {
+                    val amPm = if (settings.checkInHour >= 12) "PM" else "AM"
+                    val displayHour = if (settings.checkInHour % 12 == 0) 12 else settings.checkInHour % 12
+                    val displayMinute = settings.checkInMinute.toString().padStart(2, '0')
+                    Row(modifier = Modifier.padding(20.dp), verticalAlignment = Alignment.CenterVertically) {
+                        Text("$amPm $displayHour:$displayMinute", fontSize = 24.sp, fontWeight = FontWeight.Black)
+                        Spacer(modifier = Modifier.weight(1f))
+                        Text("Change", color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold)
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(24.dp))
+
                 Text("Grace Period", fontWeight = FontWeight.Bold, fontSize = 16.sp)
                 Text(
-                    "Time allowed after missing a check-in before notifying your emergency contacts.",
+                    "Buffer time after a missed check-in before notifying emergency contacts.",
                     fontSize = 12.sp,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(bottom = 8.dp)

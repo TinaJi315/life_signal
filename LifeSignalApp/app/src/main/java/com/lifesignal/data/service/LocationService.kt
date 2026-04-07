@@ -24,14 +24,14 @@ import java.util.Date
 import java.util.Locale
 
 /**
- * 位置服务
- * 集成 Google Maps / Fused Location Provider
- * 提供用户实时定位、地理编码、位置更新和好友位置查看功能
+ * Location Service
+ * Integrates Google Maps / Fused Location Provider
+ * Provides real-time user positioning, geocoding, location updates, and friend location viewing
  *
- * 对应前端 App.tsx 中:
- * - Member.location 字段 ("Home", "Community Center", "Office")
- * - FriendDetailPage 中的位置信息展示
- * - 签到时的位置记录
+ * Corresponds to frontend App.tsx:
+ * - Member.location field ("Home", "Community Center", "Office")
+ * - Location info display in FriendDetailPage
+ * - Location recording during check-in
  */
 class LocationService(private val context: Context) {
 
@@ -41,25 +41,25 @@ class LocationService(private val context: Context) {
     private val geocoder: Geocoder = Geocoder(context, Locale.getDefault())
 
     /**
-     * 位置数据类
+     * Location data class
      */
     data class LocationData(
         val latitude: Double = 0.0,
         val longitude: Double = 0.0,
-        val address: String = "",           // 地理编码后的地址
-        val locationName: String = "",      // 简短位置名, 如 "Home", "Office"
+        val address: String = "",           // Geocoded address
+        val locationName: String = "",      // Short location name, e.g. "Home", "Office"
         val timestamp: Date = Date()
     )
 
-    // ==================== 获取当前位置 ====================
+    // ==================== Get Current Location ====================
 
     /**
-     * 获取用户当前位置（一次性）
-     * 用于签到时记录位置
+     * Get user's current location (one-time)
+     * Used for recording location during check-in
      */
     suspend fun getCurrentLocation(): Result<LocationData> {
         if (!hasLocationPermission()) {
-            return Result.failure(SecurityException("缺少位置权限，请在设置中授予位置权限"))
+            return Result.failure(SecurityException("Missing location permission. Please grant location permission in settings."))
         }
 
         return try {
@@ -75,7 +75,7 @@ class LocationService(private val context: Context) {
                     )
                 )
             } else {
-                Result.failure(Exception("无法获取当前位置"))
+                Result.failure(Exception("Unable to get current location"))
             }
         } catch (e: Exception) {
             Result.failure(e)
@@ -83,12 +83,12 @@ class LocationService(private val context: Context) {
     }
 
     /**
-     * 实时监听位置变化
-     * 可用于在地图上实时显示用户位置
+     * Observe real-time location changes
+     * Can be used to show user location on map in real-time
      */
     fun observeLocationUpdates(intervalMs: Long = 30000): Flow<LocationData> = callbackFlow {
         if (!hasLocationPermission()) {
-            close(SecurityException("缺少位置权限"))
+            close(SecurityException("Missing location permission"))
             return@callbackFlow
         }
 
@@ -116,11 +116,11 @@ class LocationService(private val context: Context) {
         awaitClose { fusedLocationClient.removeLocationUpdates(callback) }
     }
 
-    // ==================== Firestore 位置同步 ====================
+    // ==================== Firestore Location Sync ====================
 
     /**
-     * 将用户当前位置保存到 Firestore
-     * 签到时自动调用，也可手动触发
+     * Save user's current location to Firestore
+     * Called automatically during check-in, or triggered manually
      */
     suspend fun updateUserLocation(uid: String): Result<LocationData> {
         val locationResult = getCurrentLocation()
@@ -145,8 +145,8 @@ class LocationService(private val context: Context) {
     }
 
     /**
-     * 获取好友的位置信息
-     * 对应前端 FriendDetailPage 和 NetworkPage 中的位置展示
+     * Get friend's location info
+     * Corresponds to location display in FriendDetailPage and NetworkPage
      */
     suspend fun getFriendLocation(friendUid: String): Result<LocationData> {
         return try {
@@ -176,8 +176,8 @@ class LocationService(private val context: Context) {
     }
 
     /**
-     * 获取群组所有成员的位置
-     * 可在 Google Maps 上以标记 (Markers) 显示
+     * Get all group members' locations
+     * Can display as markers on Google Maps
      */
     suspend fun getGroupMemberLocations(memberIds: List<String>): Result<Map<String, LocationData>> {
         return try {
@@ -194,10 +194,10 @@ class LocationService(private val context: Context) {
         }
     }
 
-    // ==================== 工具方法 ====================
+    // ==================== Utility Methods ====================
 
     /**
-     * 地理编码：坐标 → 地址
+     * Geocoding: coordinates -> address
      */
     private fun getAddressFromCoordinates(lat: Double, lng: Double): String {
         return try {
@@ -217,8 +217,8 @@ class LocationService(private val context: Context) {
     }
 
     /**
-     * 从完整地址中提取简短位置名
-     * 对应前端中 "Home", "Office", "Community Center" 格式
+     * Extract short location name from full address
+     * Corresponds to "Home", "Office", "Community Center" format in frontend
      */
     private fun getShortLocationName(address: String): String {
         if (address.isBlank()) return "Unknown"
@@ -227,7 +227,7 @@ class LocationService(private val context: Context) {
     }
 
     /**
-     * 检查是否有位置权限
+     * Check for location permission
      */
     private fun hasLocationPermission(): Boolean {
         return ActivityCompat.checkSelfPermission(

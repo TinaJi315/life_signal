@@ -33,15 +33,15 @@ class ShareProfileViewModel(application: Application) : AndroidViewModel(applica
     private val _user = MutableStateFlow<User?>(null)
     val user: StateFlow<User?> = _user.asStateFlow()
 
-    /** 实时 GPS LatLng（用于 Google Maps 地图标记）*/
+    /** Real-time GPS LatLng (for Google Maps marker) */
     private val _currentLatLng = MutableStateFlow<LatLng?>(null)
     val currentLatLng: StateFlow<LatLng?> = _currentLatLng.asStateFlow()
 
-    /** 实时位置地址字符串 */
+    /** Real-time location address string */
     private val _locationText = MutableStateFlow<String>("Locating…")
     val locationText: StateFlow<String> = _locationText.asStateFlow()
 
-    /** 是否已有位置权限 */
+    /** Whether location permission is granted */
     private val _hasLocationPermission = MutableStateFlow(false)
     val hasLocationPermission: StateFlow<Boolean> = _hasLocationPermission.asStateFlow()
 
@@ -85,7 +85,7 @@ class ShareProfileViewModel(application: Application) : AndroidViewModel(applica
             .build()
         fusedLocationClient.requestLocationUpdates(request, locationCallback, null)
 
-        // 同时拉一次最新位置，避免等待第一次回调
+        // Also fetch last known location to avoid waiting for first callback
         fusedLocationClient.lastLocation.addOnSuccessListener { location ->
             location?.let { updateAddress(it) }
         }

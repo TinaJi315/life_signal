@@ -36,7 +36,7 @@ import com.lifesignal.ui.screens.home.HomeScreen
 import com.lifesignal.ui.screens.network.NetworkScreen
 import com.lifesignal.ui.screens.profile.ProfileScreen
 
-// 定义底部导航的三个 Tab
+// Define three bottom navigation tabs
 sealed class BottomNavItem(val route: String, val title: String, val icon: ImageVector) {
     object Home : BottomNavItem(Screen.Home.route, "Home", Icons.Default.Home)
     object Network : BottomNavItem(Screen.Network.route, "Network", Icons.Default.People)
@@ -49,7 +49,7 @@ fun MainScreen(
     onAddFriendClick: () -> Unit = {},
     onShareProfileClick: () -> Unit = {},
     onFriendClick: (String, String, Boolean, String) -> Unit = { _, _, _, _ -> },
-    onGroupClick: () -> Unit = {},
+    onGroupClick: (String) -> Unit = {},
     onAddGroupClick: () -> Unit = {},
     onAddContactClick: () -> Unit = {},
     onPrivacySecurityClick: () -> Unit = {},
@@ -69,7 +69,7 @@ fun MainScreen(
             val navBackStackEntry by bottomNavController.currentBackStackEntryAsState()
             val currentDestination = navBackStackEntry?.destination
 
-            // 1:1 还原 React 中底部导航栏的样式
+            // Replicate the bottom navigation bar style from React
             Box(
                 modifier = Modifier
                     .background(MaterialTheme.colorScheme.background)
@@ -115,9 +115,17 @@ fun MainScreen(
                 .fillMaxSize()
                 .padding(innerPadding)
         ) {
-            composable(BottomNavItem.Home.route) { HomeScreen(onCheckInHistoryClick = onCheckInHistoryClick) }
-            composable(BottomNavItem.Network.route) { NetworkScreen(onAddFriendClick, onShareProfileClick, onFriendClick, onGroupClick, onAddGroupClick) }
-            composable(BottomNavItem.Profile.route) { 
+        composable(BottomNavItem.Home.route) { HomeScreen(onCheckInHistoryClick = onCheckInHistoryClick) }
+        composable(BottomNavItem.Network.route) { 
+            NetworkScreen(
+                onAddFriendClick = onAddFriendClick, 
+                onShareProfileClick = onShareProfileClick, 
+                onFriendClick = onFriendClick, 
+                onGroupClick = onGroupClick, 
+                onAddGroupClick = onAddGroupClick
+            ) 
+        }
+        composable(BottomNavItem.Profile.route) {  
                 ProfileScreen(
                     onSignOut = onSignOut,
                     onShareProfileClick = onShareProfileClick,

@@ -4,14 +4,14 @@ import com.google.firebase.firestore.GeoPoint
 import java.util.Date
 
 /**
- * 用户位置数据模型 (扩展)
- * 存储在 Firestore 中 users/{uid} 文档的附加字段
- * 配合 Google Maps SDK 在地图上显示好友位置
+ * User location data model (extended)
+ * Stored as additional fields in Firestore users/{uid} document
+ * Works with Google Maps SDK to display friend locations on map
  *
- * Firestore 字段说明:
- *   geoPoint: GeoPoint          — 经纬度坐标 (用于地图 Marker)
- *   location: String            — 简短位置名 (如 "Home", "Office")
- *   lastLocationUpdate: Date    — 最后一次位置更新时间
+ * Firestore field descriptions:
+ *   geoPoint: GeoPoint          — Latitude/Longitude coordinates (for map Markers)
+ *   location: String            — Short location name (e.g. "Home", "Office")
+ *   lastLocationUpdate: Date    — Last location update timestamp
  */
 data class UserLocation(
     val uid: String = "",
@@ -19,6 +19,6 @@ data class UserLocation(
     val geoPoint: GeoPoint? = null,
     val location: String = "",
     val lastLocationUpdate: Date? = null,
-    val status: String = "safe",       // 用于在地图 Marker 上显示颜色
-    val profileImageUrl: String = ""   // 用于在地图 Marker 上显示头像
+    val status: String = "safe",       // For map Marker color display
+    val profileImageUrl: String = ""   // For map Marker avatar display
 )

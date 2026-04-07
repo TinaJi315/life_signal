@@ -2,7 +2,7 @@ package com.lifesignal.ui.theme
 
 import androidx.compose.ui.graphics.Color
 
-// 从原网页 index.css 中提取的色卡 (1:1 还原 Tailwind 变量)
+// Color palette extracted from the original web page index.css (1:1 match of Tailwind variables)
 
 val Primary = Color(0xFF004D99)
 val PrimaryContainer = Color(0xFF1565C0)
@@ -33,7 +33,7 @@ val OnError = Color(0xFFFFFFFF)
 val ErrorContainer = Color(0xFFFFDAD6)
 val OnErrorContainer = Color(0xFF410002)
 
-// 警告色 (琥珀色系)
+// Warning colors (amber palette)
 val Warning = Color(0xFFF59E0B)
 val WarningContainer = Color(0xFFFEF3C7)
 val OnWarning = Color(0xFF78350F)

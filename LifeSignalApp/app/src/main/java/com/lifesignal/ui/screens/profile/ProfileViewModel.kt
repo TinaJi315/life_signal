@@ -40,7 +40,7 @@ class ProfileViewModel(application: Application) : AndroidViewModel(application)
         }
     }
 
-    /** 上传本地图片到 Firebase Storage，然后更新 Firestore profileImageUrl */
+    /** Upload local image to Firebase Storage, then update Firestore profileImageUrl */
     fun uploadAvatar(imageUri: Uri) {
         val uid = authRepository.currentUid ?: return
         _isUploadingAvatar.value = true
@@ -51,14 +51,14 @@ class ProfileViewModel(application: Application) : AndroidViewModel(application)
                 val downloadUrl = ref.downloadUrl.await().toString()
                 userRepository.updateProfileImage(uid, downloadUrl)
             } catch (e: Exception) {
-                // 静默失败，保持原头像
+                // Silent failure, keep original avatar
             } finally {
                 _isUploadingAvatar.value = false
             }
         }
     }
 
-    /** 更新文字简历 */
+    /** Update profile text */
     fun updateProfile(name: String, phone: String) {
         val uid = authRepository.currentUid ?: return
         viewModelScope.launch {

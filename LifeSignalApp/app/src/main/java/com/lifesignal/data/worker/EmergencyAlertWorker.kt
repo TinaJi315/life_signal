@@ -24,14 +24,14 @@ import kotlinx.coroutines.tasks.await
 import java.util.Date
 
 /**
- * 48 小时紧急呼救 Worker
+ * 48-hour Emergency Alert Worker
  *
- * 当用户超过 48 小时未签到时自动触发：
- * 1. 将 Firestore 中的 user.status 更新为 "emergency"
- * 2. 获取真实 GPS 坐标（回退至 Firestore 中的 geoPoint）
- * 3. 向所有紧急联系人发送包含位置链接的短信
- * 4. 在 Firestore 中创建 EmergencyIncident 事件日志
- * 5. 发送本地高优先级通知
+ * Triggered automatically when user hasn't checked in for 48+ hours:
+ * 1. Updates user.status to "emergency" in Firestore
+ * 2. Gets real GPS coordinates (falls back to Firestore geoPoint)
+ * 3. Sends SMS with location link to all emergency contacts
+ * 4. Creates EmergencyIncident event log in Firestore
+ * 5. Sends high-priority local notification
  */
 class EmergencyAlertWorker(
     private val appContext: Context,
@@ -40,7 +40,7 @@ class EmergencyAlertWorker(
 
     companion object {
         const val CHANNEL_ID = "lifesignal_emergency"
-        const val CHANNEL_NAME = "紧急警报"
+        const val CHANNEL_NAME = "Emergency Alert"
         const val NOTIFICATION_ID = 1002
     }
 
@@ -52,7 +52,7 @@ class EmergencyAlertWorker(
 
             val uid = authRepo.currentUid ?: return Result.success()
 
-            // 1. 更新状态为 "emergency"
+            // 1. Update status to "emergency"
             val statusUpdates = mapOf(
                 "status" to "emergency",
                 "updatedAt" to Date()
@@ -62,16 +62,16 @@ class EmergencyAlertWorker(
                 .set(statusUpdates, SetOptions.merge())
                 .await()
 
-            // 2. 获取用户文档（取名字和已有位置）
+            // 2. Get user document (name and stored location)
             val userDoc = firestore.collection(User.COLLECTION)
                 .document(uid)
                 .get()
                 .await()
-            val userName = userDoc.getString("name") ?: "LifeSignal 用户"
+            val userName = userDoc.getString("name") ?: "LifeSignal User"
             val storedGeoPoint = userDoc.getGeoPoint("geoPoint")
             val storedAddress = userDoc.getString("location") ?: ""
 
-            // 3. 尝试获取真实设备 GPS 坐标
+            // 3. Try to get real device GPS coordinates
             var lat = storedGeoPoint?.latitude ?: 0.0
             var lng = storedGeoPoint?.longitude ?: 0.0
             var address = storedAddress
@@ -86,15 +86,15 @@ class EmergencyAlertWorker(
                         address = if (storedAddress.isNotBlank()) storedAddress else "GPS: $lat, $lng"
                     }
                 } catch (e: Exception) {
-                    Log.w("EmergencyAlertWorker", "无法获取设备位置，使用 Firestore 缓存", e)
+                    Log.w("EmergencyAlertWorker", "Unable to get device location, using Firestore cache", e)
                 }
             }
 
-            // 4. 组装求救短信
+            // 4. Compose emergency SMS
             val mapLink = "https://maps.google.com/?q=$lat,$lng"
-            val message = "\uD83D\uDEA8 LifeSignal 紧急警报：$userName 已超过 48 小时未签到！\n最后已知位置：$address\n地图：$mapLink"
+            val message = "🚨 LifeSignal Emergency Alert: $userName has not checked in for over 48 hours!\nLast known location: $address\nMap: $mapLink"
 
-            // 5. 获取紧急联系人并发送短信
+            // 5. Get emergency contacts and send SMS
             val contacts = userRepo.getContactsOnce(uid).getOrNull() ?: emptyList()
             val notifiedPhones = mutableListOf<String>()
 
@@ -104,21 +104,21 @@ class EmergencyAlertWorker(
                     val phone = contact.phone
                     if (phone.isNotBlank()) {
                         try {
-                            // 长短信拆分发送
+                            // Split long messages for sending
                             val parts = smsManager.divideMessage(message)
                             smsManager.sendMultipartTextMessage(phone, null, parts, null, null)
                             notifiedPhones.add(phone)
-                            Log.d("EmergencyAlertWorker", "已发送紧急短信至 $phone")
+                            Log.d("EmergencyAlertWorker", "Emergency SMS sent to $phone")
                         } catch (e: Exception) {
-                            Log.e("EmergencyAlertWorker", "发送短信至 $phone 失败", e)
+                            Log.e("EmergencyAlertWorker", "Failed to send SMS to $phone", e)
                         }
                     }
                 }
             } else {
-                Log.w("EmergencyAlertWorker", "未找到紧急联系人，无法发送短信")
+                Log.w("EmergencyAlertWorker", "No emergency contacts found, unable to send SMS")
             }
 
-            // 6. Firebase 事件日志
+            // 6. Firebase event log
             val incident = mapOf(
                 "userUid" to uid,
                 "triggeredAt" to Date(),
@@ -134,14 +134,14 @@ class EmergencyAlertWorker(
                 .collection(EmergencyIncident.COLLECTION)
                 .add(incident)
                 .await()
-            Log.d("EmergencyAlertWorker", "紧急事件已记录至 Firebase")
+            Log.d("EmergencyAlertWorker", "Emergency incident logged to Firebase")
 
-            // 7. 发送本地紧急通知
+            // 7. Send local emergency notification
             sendEmergencyNotification()
 
             Result.success()
         } catch (e: Exception) {
-            Log.e("EmergencyAlertWorker", "紧急呼救执行失败", e)
+            Log.e("EmergencyAlertWorker", "Emergency alert execution failed", e)
             Result.failure()
         }
     }
@@ -165,18 +165,18 @@ class EmergencyAlertWorker(
                 CHANNEL_NAME,
                 NotificationManager.IMPORTANCE_HIGH
             ).apply {
-                description = "紧急警报 — 已通知紧急联系人"
+                description = "Emergency alert — emergency contacts notified"
             }
             notificationManager.createNotificationChannel(channel)
         }
 
         val notification = NotificationCompat.Builder(appContext, CHANNEL_ID)
             .setSmallIcon(R.mipmap.ic_launcher)
-            .setContentTitle("\uD83D\uDEA8 LifeSignal — 紧急警报已触发")
-            .setContentText("您的紧急联系人已收到自动警报短信。请立即签到以解除紧急状态。")
+            .setContentTitle("🚨 LifeSignal — Emergency Alert Triggered")
+            .setContentText("Your emergency contacts have been automatically alerted via SMS. Please check in immediately to resolve.")
             .setStyle(
                 NotificationCompat.BigTextStyle()
-                    .bigText("由于您超过 48 小时未签到，系统已自动向所有紧急联系人发送包含您位置信息的警报短信。请立即打开应用签到以解除紧急状态。")
+                    .bigText("Because you haven't checked in for over 48 hours, the system has automatically sent emergency alert SMS messages with your location to all your emergency contacts. Please open the app and check in immediately to resolve the emergency status.")
             )
             .setPriority(NotificationCompat.PRIORITY_MAX)
             .setAutoCancel(true)

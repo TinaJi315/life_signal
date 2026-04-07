@@ -25,7 +25,7 @@ import com.lifesignal.data.model.Friend
 fun NewGroupScreen(onBack: () -> Unit, viewModel: NetworkViewModel = viewModel()) {
     var groupName by remember { mutableStateOf("") }
     
-    // 拉取用户已经真正添加成功的底层好友列表作为备选人员
+    // Fetch accepted friends as candidate members
     val friends by viewModel.friends.collectAsState()
     val selectedMembers = remember { mutableStateListOf<Friend>() }
 

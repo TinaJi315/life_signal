@@ -28,7 +28,7 @@ fun PrivacySecurityScreen(onBack: () -> Unit) {
     val authRepo = remember { AuthRepository() }
     val scope = rememberCoroutineScope()
 
-    // 密码重置弹窗状态
+    // Password reset dialog state
     var showResetDialog by remember { mutableStateOf(false) }
     var resetSent by remember { mutableStateOf(false) }
 
@@ -63,7 +63,7 @@ fun PrivacySecurityScreen(onBack: () -> Unit) {
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // ── 权限管理 ──
+            // -- Permissions --
             SectionCard {
                 SectionHeader(icon = Icons.Default.LocationOn, label = "Permissions")
 
@@ -92,7 +92,7 @@ fun PrivacySecurityScreen(onBack: () -> Unit) {
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // ── 账户安全 ──
+            // -- Account Security --
             SectionCard {
                 SectionHeader(icon = Icons.Default.Lock, label = "Account Security")
 
@@ -113,7 +113,7 @@ fun PrivacySecurityScreen(onBack: () -> Unit) {
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // ── 关于 ──
+            // -- About --
             SectionCard {
                 SectionHeader(icon = Icons.Default.Info, label = "About")
 
@@ -128,7 +128,7 @@ fun PrivacySecurityScreen(onBack: () -> Unit) {
         }
     }
 
-    // 密码重置确认弹窗
+    // Password reset confirmation dialog
     if (showResetDialog) {
         AlertDialog(
             onDismissRequest = { showResetDialog = false },
@@ -168,7 +168,7 @@ fun PrivacySecurityScreen(onBack: () -> Unit) {
     }
 }
 
-// ── 共用小组件 ──
+// -- Shared widgets --
 
 @Composable
 private fun SectionCard(content: @Composable ColumnScope.() -> Unit) {

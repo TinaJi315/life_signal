@@ -35,23 +35,23 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
     private val _isCheckingIn = MutableStateFlow(false)
     val isCheckingIn: StateFlow<Boolean> = _isCheckingIn.asStateFlow()
 
-    /** 下次签到时间（从Firestore实时读取）*/
+    /** Next check-in time (read from Firestore in real-time) */
     private val _nextCheckInDate = MutableStateFlow<Date?>(null)
     val nextCheckInDate: StateFlow<Date?> = _nextCheckInDate.asStateFlow()
 
-    /** 格式化后的下次签到时间文本 */
+    /** Formatted next check-in time text */
     private val _nextCheckInText = MutableStateFlow("—")
     val nextCheckInText: StateFlow<String> = _nextCheckInText.asStateFlow()
 
-    /** 倒计时剩余时间文本 */
+    /** Countdown remaining time text */
     private val _remainingTimeText = MutableStateFlow(Pair("—", "—"))
     val remainingTimeText: StateFlow<Pair<String, String>> = _remainingTimeText.asStateFlow()
 
-    /** 签到历史 */
+    /** Check-in history */
     private val _checkInHistory = MutableStateFlow<List<CheckIn>>(emptyList())
     val checkInHistory: StateFlow<List<CheckIn>> = _checkInHistory.asStateFlow()
 
-    /** 用户安全状态: "safe" | "warning" | "emergency" */
+    /** User safety status: "safe" | "warning" | "emergency" */
     private val _userStatus = MutableStateFlow("safe")
     val userStatus: StateFlow<String> = _userStatus.asStateFlow()
 
@@ -74,13 +74,13 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
                     _isCheckedIn.value = today == checkInDay
                 }
             }
-            // 加载历史记录
+            // Load check-in history
             val historyResult = checkInService.getCheckInHistory(uid, 20)
             _checkInHistory.value = historyResult.getOrNull() ?: emptyList()
         }
     }
 
-    /** 实时监听用户文档，获取 nextCheckInTime 和 status */
+    /** Observe user document in real-time, get nextCheckInTime and status */
     private fun observeUserData() {
         val uid = authRepository.currentUser?.uid ?: return
         viewModelScope.launch {
@@ -90,17 +90,17 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
                 _nextCheckInText.value = nextTime?.let { formatNextCheckIn(it) } ?: "Not scheduled"
                 updateCountdown(nextTime)
 
-                // 同步用户安全状态
+                // Sync user safety status
                 _userStatus.value = user?.status ?: "safe"
             }
         }
     }
 
-    /** 每分钟触发一次，更新倒计时显示 */
+    /** Triggered every second to update countdown display */
     private fun startCountdownTicker() {
         viewModelScope.launch {
             while (true) {
-                delay(60_000L)
+                delay(1000L)
                 updateCountdown(_nextCheckInDate.value)
             }
         }
@@ -136,7 +136,7 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
-    /** 强置重置，退回签到前状态（调试用）*/
+    /** Force reset to pre-check-in state (for debugging) */
     fun debugResetState() {
         _isCheckedIn.value = false
     }
@@ -153,12 +153,27 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
             if (result.isSuccess) {
                 _isCheckedIn.value = true
                 _lastCheckIn.value = checkInService.getLastCheckIn(uid).getOrNull()
-                // 重新加载历史
+                // Reload check-in history
                 val historyResult = checkInService.getCheckInHistory(uid, 20)
                 _checkInHistory.value = historyResult.getOrNull() ?: emptyList()
-
-                // 重置双阶段警报计时器
-                AlertScheduler.scheduleAlerts(getApplication(), 30, 60)
+                // Fetch user settings or use defaults
+                val settingsResult = userRepository.getCheckInSettings(uid)
+                val settings = settingsResult.getOrNull() ?: com.lifesignal.data.model.CheckInSettings()
+                
+                val calendar = java.util.Calendar.getInstance().apply {
+                    add(java.util.Calendar.DAY_OF_MONTH, 1)
+                    set(java.util.Calendar.HOUR_OF_DAY, settings.checkInHour)
+                    set(java.util.Calendar.MINUTE, settings.checkInMinute)
+                    set(java.util.Calendar.SECOND, 0)
+                    set(java.util.Calendar.MILLISECOND, 0)
+                }
+                
+                // For testing purposes, hardcode delays. 
+                // In production, use the real delay calculated from calendar.
+                val warningDelay = 30L
+                val emergencyDelay = 60L
+                
+                AlertScheduler.scheduleAlerts(getApplication(), warningDelay, emergencyDelay)
             }
             _isCheckingIn.value = false
         }

@@ -7,37 +7,37 @@ import com.lifesignal.data.model.User
 import kotlinx.coroutines.tasks.await
 
 /**
- * 认证存储库
- * 处理 Firebase Authentication 登录/注册/注销
- * 对应前端 ProfilePage 中的 Sign Out 按钮
+ * Authentication Repository
+ * Handles Firebase Authentication login/registration/logout
+ * Corresponds to Sign Out button on frontend ProfilePage
  */
 class AuthRepository {
 
     private val auth: FirebaseAuth = FirebaseAuth.getInstance()
     private val firestore: FirebaseFirestore = FirebaseFirestore.getInstance()
 
-    /** 获取当前登录用户 */
+    /** Get current logged-in user */
     val currentUser: FirebaseUser?
         get() = auth.currentUser
 
-    /** 获取当前用户 UID */
+    /** Get current user UID */
     val currentUid: String?
         get() = auth.currentUser?.uid
 
-    /** 判断用户是否已登录 */
+    /** Check if user is logged in */
     val isLoggedIn: Boolean
         get() = auth.currentUser != null
 
     /**
-     * 邮箱密码注册
-     * 注册成功后会自动在 Firestore 中创建用户文档
+     * Register with email and password
+     * After registration, automatically creates user document in Firestore
      */
     suspend fun register(email: String, password: String, name: String): Result<FirebaseUser> {
         return try {
             val result = auth.createUserWithEmailAndPassword(email, password).await()
-            val firebaseUser = result.user ?: throw Exception("注册失败：用户为空")
+            val firebaseUser = result.user ?: throw Exception("Registration failed: user is null")
 
-            // 在 Firestore 中创建用户文档
+            // Create user document in Firestore
             val user = User(
                 uid = firebaseUser.uid,
                 name = name,
@@ -56,12 +56,12 @@ class AuthRepository {
     }
 
     /**
-     * 邮箱密码登录
+     * Login with email and password
      */
     suspend fun login(email: String, password: String): Result<FirebaseUser> {
         return try {
             val result = auth.signInWithEmailAndPassword(email, password).await()
-            val firebaseUser = result.user ?: throw Exception("登录失败：用户为空")
+            val firebaseUser = result.user ?: throw Exception("Login failed: user is null")
             Result.success(firebaseUser)
         } catch (e: Exception) {
             Result.failure(e)
@@ -69,15 +69,15 @@ class AuthRepository {
     }
 
     /**
-     * 注销登录
-     * 对应前端 ProfilePage 中的 "Sign Out" 按钮
+     * Sign out
+     * Corresponds to "Sign Out" button on frontend ProfilePage
      */
     fun logout() {
         auth.signOut()
     }
 
     /**
-     * 发送密码重置邮件
+     * Send password reset email
      */
     suspend fun resetPassword(email: String): Result<Unit> {
         return try {
